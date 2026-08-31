@@ -11,8 +11,9 @@ on:
 
 # A new push supersedes an in-flight run for the same ref, rather than queueing
 # behind work that is already out of date.
+# The checker expects this exact group expression.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
