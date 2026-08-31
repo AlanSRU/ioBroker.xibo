@@ -91,8 +91,10 @@ the folder tree and filters against it.
 
 ## Related
 
-- [pixelmabob](../pixelmabob/) — authors the designs and publishes the layouts this adapter plays
-- [iobroker.streamdeck](../iobroker.streamdeck/) — the decks that drive it
+- **Pixelmabob** — authors the designs and publishes the layouts this adapter plays
+- **ioBroker.streamdeck** — the decks that drive it
+
+Both are separate repositories in the same estate.
 
 ## License
 

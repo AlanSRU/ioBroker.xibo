@@ -5,6 +5,13 @@ import {
     XiboConfig, XiboDisplayGroup,
 } from "./lib/xibo-types";
 
+/** Keeps a configured number inside sane bounds, falling back when unusable. */
+function clamp(value: unknown, min: number, max: number, fallback: number): number {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return fallback;
+    return Math.min(max, Math.max(min, n));
+}
+
 interface GroupIndexEntry {
     objectId: string;
     displayGroupId: number;
@@ -13,11 +20,22 @@ interface GroupIndexEntry {
 
 class XiboAdapter extends utils.Adapter {
     private client: XiboClient | null = null;
-    private inventoryTimer: ioBroker.Interval | undefined;
-    private statusTimer: ioBroker.Interval | undefined;
+    private inventoryTimer: ioBroker.Timeout | undefined;
+    private statusTimer: ioBroker.Timeout | undefined;
+    /**
+     * Set before anything else in onUnload.
+     *
+     * A poll that is mid-request when the instance stops would otherwise carry
+     * on after `client` is cleared and write state against a dead adapter.
+     */
+    private unloaded = false;
+    /** Retry delay after a failed inventory refresh, doubling to the poll interval. */
+    private inventoryRetryMs = 0;
     /** Display group id -> where it lives in the object tree. */
     private groupIndex = new Map<number, GroupIndexEntry>();
     private layoutFolderId: number | null = null;
+    /** Whether the configured layout folder has been resolved once already. */
+    private layoutFolderChecked = false;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({ ...options, name: "xibo" });
@@ -32,10 +50,14 @@ class XiboAdapter extends utils.Adapter {
             url: (c.url ?? "").trim(),
             clientId: (c.clientId ?? "").trim(),
             clientSecret: (c.clientSecret ?? "").trim(),
-            // Floors, not defaults: a poll every second would hammer the CMS.
-            inventoryPollInterval: Math.max(30_000, Number(c.inventoryPollInterval) || 300_000),
-            statusPollInterval: Math.max(5_000, Number(c.statusPollInterval) || 30_000),
-            requestTimeout: Math.max(2_000, Number(c.requestTimeout) || 30_000),
+            // Clamped at both ends in code, not just in the admin UI: an
+            // instance object can be written by a restored backup or a script,
+            // and a value at or above 2^31 makes Node fall back to a 1 ms timer
+            // — which would poll the CMS continuously, or abort every request
+            // before it could answer.
+            inventoryPollInterval: clamp(c.inventoryPollInterval, 30_000, 86_400_000, 300_000),
+            statusPollInterval: clamp(c.statusPollInterval, 5_000, 3_600_000, 30_000),
+            requestTimeout: clamp(c.requestTimeout, 2_000, 120_000, 30_000),
             layoutFolder: (c.layoutFolder ?? "").trim(),
             defaultChangeDuration: Math.max(0, Number(c.defaultChangeDuration) || 0),
         };
@@ -58,22 +80,47 @@ class XiboAdapter extends utils.Adapter {
         await this.subscribeStatesAsync("commands.*");
         await this.subscribeStatesAsync("displayGroups.*");
 
-        await this.refreshInventory();
+        // Each pass re-arms itself when it finishes, so a slow CMS delays the
+        // next poll rather than stacking a second one on top of it. With
+        // setInterval a pass that outlives its interval overlaps the next, and
+        // the pile-up grows for as long as the CMS is unwell.
+        void this.pollInventory();
+        void this.pollStatus();
+    }
+
+    private async pollInventory(): Promise<void> {
+        const ok = await this.refreshInventory();
+        if (this.unloaded) return;
+
+        // A failed startup refresh leaves no display groups, so every button
+        // press would be rejected until the full interval elapsed. Retry sooner,
+        // backing off to the normal interval.
+        const config = this.settings;
+        if (ok) {
+            this.inventoryRetryMs = 0;
+        } else {
+            this.inventoryRetryMs = Math.min(
+                config.inventoryPollInterval,
+                this.inventoryRetryMs === 0 ? 15_000 : this.inventoryRetryMs * 2,
+            );
+        }
+        const delay = this.inventoryRetryMs || config.inventoryPollInterval;
+        this.inventoryTimer = this.setTimeout(() => void this.pollInventory(), delay);
+    }
+
+    private async pollStatus(): Promise<void> {
         await this.refreshStatus();
-
-        this.inventoryTimer = this.setInterval(() => {
-            void this.refreshInventory();
-        }, config.inventoryPollInterval);
-
-        this.statusTimer = this.setInterval(() => {
-            void this.refreshStatus();
-        }, config.statusPollInterval);
+        if (this.unloaded) return;
+        this.statusTimer = this.setTimeout(() => void this.pollStatus(), this.settings.statusPollInterval);
     }
 
     private onUnload(callback: () => void): void {
         try {
-            if (this.inventoryTimer) this.clearInterval(this.inventoryTimer);
-            if (this.statusTimer) this.clearInterval(this.statusTimer);
+            // First, so a poll already past its own guard stops before it
+            // writes state or dereferences a cleared client.
+            this.unloaded = true;
+            if (this.inventoryTimer) this.clearTimeout(this.inventoryTimer);
+            if (this.statusTimer) this.clearTimeout(this.statusTimer);
             this.client = null;
             callback();
         } catch {
@@ -150,16 +197,21 @@ class XiboAdapter extends utils.Adapter {
     // ------------------------------------------------------------ polling
 
     private async setConnected(connected: boolean, error?: string): Promise<void> {
+        if (this.unloaded) return;
         await this.setState("info.connection", { val: connected, ack: true });
         if (error !== undefined) await this.setState("info.lastError", { val: error, ack: true });
     }
 
-    private async refreshInventory(): Promise<void> {
-        if (!this.client) return;
+    /** Returns whether the refresh succeeded, so the caller can back off. */
+    private async refreshInventory(): Promise<boolean> {
+        if (!this.client || this.unloaded) return false;
         const config = this.settings;
 
         try {
-            if (config.layoutFolder && this.layoutFolderId === null) {
+            // Looked up once. Warning on every cycle about a folder that does
+            // not exist would fill the log for the life of the instance.
+            if (config.layoutFolder && this.layoutFolderId === null && !this.layoutFolderChecked) {
+                this.layoutFolderChecked = true;
                 this.layoutFolderId = await this.client.findFolderPath(config.layoutFolder);
                 if (this.layoutFolderId === null) {
                     this.log.warn(
@@ -192,19 +244,27 @@ class XiboAdapter extends utils.Adapter {
             await this.setState("inventory.layoutCount", { val: layouts.length, ack: true });
             await this.setState("info.lastSync", { val: new Date().toISOString(), ack: true });
             await this.setConnected(true, "");
+            return true;
         } catch (err) {
+            if (this.unloaded) return false;
             this.log.error(`Inventory refresh failed: ${(err as Error).message}`);
             await this.setConnected(false, (err as Error).message);
+            return false;
         }
     }
 
     private async refreshStatus(): Promise<void> {
-        if (!this.client) return;
+        if (!this.client || this.unloaded) return;
         try {
-            const displays = await this.client.listDisplays();
+            const client = this.client;
+            const displays = await client.listDisplays();
+            if (this.unloaded) return;
 
             for (const entry of this.groupIndex.values()) {
-                const inGroup = await this.client.listDisplaysInGroup(entry.displayGroupId);
+                // Captured above: `this.client` is cleared on unload, and this
+                // loop can be mid-await when that happens.
+                if (this.unloaded) return;
+                const inGroup = await client.listDisplaysInGroup(entry.displayGroupId);
                 const online = inGroup.filter((d) => d.loggedIn === 1);
 
                 await this.setState(`${entry.objectId}.id`, { val: entry.displayGroupId, ack: true });
@@ -217,9 +277,11 @@ class XiboAdapter extends utils.Adapter {
                 });
             }
 
+            if (this.unloaded) return;
             await this.setState("inventory.displaysJson", { val: JSON.stringify(displays), ack: true });
             await this.setConnected(true);
         } catch (err) {
+            if (this.unloaded) return;
             this.log.warn(`Status refresh failed: ${(err as Error).message}`);
             await this.setConnected(false, (err as Error).message);
         }
@@ -270,10 +332,20 @@ class XiboAdapter extends utils.Adapter {
         const duration = Number(payload.duration ?? this.settings.defaultChangeDuration);
 
         switch (command) {
-            case "refresh":
-                await this.refreshInventory();
+            case "refresh": {
+                // Both swallow their own errors, so the outcome has to be taken
+                // from the return value — otherwise a refresh against an
+                // unreachable CMS records ok:true and anything gating on that
+                // believes it worked.
+                const ok = await this.refreshInventory();
                 await this.refreshStatus();
+                if (!ok) {
+                    await this.recordResult(command, payload, false, "Inventory refresh failed — see info.lastError");
+                    await this.setState("commands.refresh", { val: false, ack: true });
+                    return;
+                }
                 break;
+            }
 
             case "changeLayout":
                 await this.client!.changeLayout(
