@@ -1,0 +1,21 @@
+{
+    "clientIdHelp": "Z Administracja -> Aplikacje w CMS. Aplikacja musi umożliwiać przyznanie Client_credentials.",
+    "clientIdLabel": "Identyfikator klienta",
+    "clientSecretHelp": "Tajna wartość, a nie tajny identyfikator",
+    "clientSecretLabel": "Sekret klienta",
+    "cmsHeader": "CMS Xibo",
+    "defaultChangeDurationHelp": "Jak długo układ pozostaje, zanim wyświetlacz powróci do swojego harmonogramu. 0 oznacza, że ​​pozostanie aż do przywrócenia.",
+    "defaultChangeDurationLabel": "Domyślny czas trwania (sekundy)",
+    "inventoryPollIntervalHelp": "Jak często ponownie czytać grupy i układy wyświetlania",
+    "inventoryPollIntervalLabel": "Odświeżanie zapasów (ms)",
+    "layoutFolderHelp": "Oferuj układy tylko w tym folderze CMS i poniżej. Pozostaw puste dla każdego układu w CMS.",
+    "layoutFolderLabel": "Folder układu",
+    "pollHeader": "Ankieta",
+    "requestTimeoutHelp": "Jak długo czekać na CMS zanim zrezygnujesz z żądania",
+    "requestTimeoutLabel": "Limit czasu żądania (ms)",
+    "scopeHeader": "Co zaoferować",
+    "statusPollIntervalHelp": "Jak często ponownie czytać, które wyświetlacze są online i co pokazują",
+    "statusPollIntervalLabel": "Odświeżanie stanu (ms)",
+    "urlHelp": "Katalog główny CMS, bez przyrostka /api",
+    "urlLabel": "Adres URL systemu CMS"
+}

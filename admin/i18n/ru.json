@@ -1,0 +1,21 @@
+{
+    "clientIdHelp": "Из Администрирование -> Приложения в CMS. Приложение должно разрешить предоставление client_credentials.",
+    "clientIdLabel": "Идентификатор клиента",
+    "clientSecretHelp": "Секретное значение, а не секретный идентификатор",
+    "clientSecretLabel": "Секрет клиента",
+    "cmsHeader": "Сибо CMS",
+    "defaultChangeDurationHelp": "Как долго сохраняется макет, прежде чем отображение вернется к своему расписанию. 0 означает, что он остается до тех пор, пока не будет отменен.",
+    "defaultChangeDurationLabel": "Длительность по умолчанию (секунды)",
+    "inventoryPollIntervalHelp": "Как часто перечитывать группы отображения и макеты",
+    "inventoryPollIntervalLabel": "Обновление инвентаря (мс)",
+    "layoutFolderHelp": "Предлагайте макеты только в этой папке CMS и ниже. Оставьте пустым для каждого макета в CMS.",
+    "layoutFolderLabel": "Папка макета",
+    "pollHeader": "Опрос",
+    "requestTimeoutHelp": "Как долго ждать CMS, прежде чем отказаться от запроса",
+    "requestTimeoutLabel": "Таймаут запроса (мс)",
+    "scopeHeader": "Что предложить",
+    "statusPollIntervalHelp": "Как часто перечитывать, какие дисплеи онлайн и что они показывают",
+    "statusPollIntervalLabel": "Обновление статуса (мс)",
+    "urlHelp": "Корень CMS без суффикса /api.",
+    "urlLabel": "URL-адрес системы управления контентом"
+}

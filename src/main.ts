@@ -136,6 +136,7 @@ class XiboAdapter extends utils.Adapter {
                     role: suffix.role,
                     read: suffix.read,
                     write: suffix.write,
+                    def: suffix.def as never,
                 },
                 native: {},
             });

@@ -1,0 +1,21 @@
+{
+    "clientIdHelp": "Da Amministrazione -> Applicazioni nel CMS. L'applicazione deve consentire la concessione client_credentials.",
+    "clientIdLabel": "ID cliente",
+    "clientSecretHelp": "Il valore segreto, non l'ID segreto",
+    "clientSecretLabel": "Segreto del cliente",
+    "cmsHeader": "XiboCMS",
+    "defaultChangeDurationHelp": "Per quanto tempo rimane un layout prima che la visualizzazione ritorni alla programmazione. 0 significa che rimane finché non viene ripristinato.",
+    "defaultChangeDurationLabel": "Durata predefinita (secondi)",
+    "inventoryPollIntervalHelp": "La frequenza con cui rileggere i gruppi di visualizzazione e i layout",
+    "inventoryPollIntervalLabel": "Aggiornamento dell'inventario (ms)",
+    "layoutFolderHelp": "Offri solo layout in questa cartella CMS e nelle versioni seguenti. Lascia vuoto per ogni layout nel CMS.",
+    "layoutFolderLabel": "Cartella layout",
+    "pollHeader": "Sondaggio",
+    "requestTimeoutHelp": "Quanto tempo attendere il CMS prima di rinunciare ad una richiesta",
+    "requestTimeoutLabel": "Richiedi timeout (ms)",
+    "scopeHeader": "Cosa offrire",
+    "statusPollIntervalHelp": "Con quale frequenza rileggere quali display sono online e cosa mostrano",
+    "statusPollIntervalLabel": "Aggiornamento dello stato (ms)",
+    "urlHelp": "La radice CMS, senza il suffisso /api",
+    "urlLabel": "URL del CMS"
+}

@@ -1,0 +1,21 @@
+{
+    "clientIdHelp": "从 CMS 中的管理 -> 应用程序。应用程序必须允许 client_credentials 授予。",
+    "clientIdLabel": "客户ID",
+    "clientSecretHelp": "秘密值，而不是秘密 ID",
+    "clientSecretLabel": "客户秘密",
+    "cmsHeader": "西博CMS",
+    "defaultChangeDurationHelp": "显示返回其计划之前布局停留的时间。 0 表示它一直保留到恢复为止。",
+    "defaultChangeDurationLabel": "默认持续时间（秒）",
+    "inventoryPollIntervalHelp": "重新读取显示组和布局的频率",
+    "inventoryPollIntervalLabel": "库存刷新（毫秒）",
+    "layoutFolderHelp": "仅提供此 CMS 文件夹及以下文件夹中的布局。将 CMS 中的每个布局留空。",
+    "layoutFolderLabel": "布局文件夹",
+    "pollHeader": "轮询",
+    "requestTimeoutHelp": "在放弃请求之前等待 CMS 多长时间",
+    "requestTimeoutLabel": "请求超时（毫秒）",
+    "scopeHeader": "提供什么",
+    "statusPollIntervalHelp": "多久重新读取哪些显示器在线以及它们显示的内容",
+    "statusPollIntervalLabel": "状态刷新（毫秒）",
+    "urlHelp": "CMS 根目录，不带 /api 后缀",
+    "urlLabel": "内容管理系统网址"
+}

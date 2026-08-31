@@ -1,0 +1,21 @@
+{
+    "clientIdHelp": "Desde Administración -> Aplicaciones en el CMS. La aplicación debe permitir la concesión client_credentials.",
+    "clientIdLabel": "ID de cliente",
+    "clientSecretHelp": "El valor secreto, no el ID secreto",
+    "clientSecretLabel": "secreto del cliente",
+    "cmsHeader": "Xibo CMS",
+    "defaultChangeDurationHelp": "Cuánto tiempo permanece un diseño antes de que la visualización vuelva a su programación. 0 significa que permanece hasta que se revierte.",
+    "defaultChangeDurationLabel": "Duración predeterminada (segundos)",
+    "inventoryPollIntervalHelp": "Con qué frecuencia volver a leer los diseños y los grupos de visualización",
+    "inventoryPollIntervalLabel": "Actualización de inventario (ms)",
+    "layoutFolderHelp": "Ofrezca diseños únicamente en esta carpeta CMS y a continuación. Déjelo vacío para cada diseño del CMS.",
+    "layoutFolderLabel": "Carpeta de diseño",
+    "pollHeader": "Votación",
+    "requestTimeoutHelp": "¿Cuánto tiempo esperar al CMS antes de abandonar una solicitud?",
+    "requestTimeoutLabel": "Solicitar tiempo de espera (ms)",
+    "scopeHeader": "que ofrecer",
+    "statusPollIntervalHelp": "Con qué frecuencia volver a leer qué pantallas están en línea y qué muestran",
+    "statusPollIntervalLabel": "Actualización de estado (ms)",
+    "urlHelp": "La raíz del CMS, sin el sufijo /api",
+    "urlLabel": "URL del CMS"
+}

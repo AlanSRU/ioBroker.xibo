@@ -1,0 +1,21 @@
+{
+    "clientIdHelp": "Vanuit Beheer -> Applicaties in het CMS. De toepassing moet de toekenning van client_credentials toestaan.",
+    "clientIdLabel": "Klant-ID",
+    "clientSecretHelp": "De geheime waarde, niet de geheime ID",
+    "clientSecretLabel": "Klantgeheim",
+    "cmsHeader": "Xibo CMS",
+    "defaultChangeDurationHelp": "Hoe lang een lay-out blijft staan ​​voordat het display terugkeert naar het schema. 0 betekent dat het blijft totdat het wordt teruggedraaid.",
+    "defaultChangeDurationLabel": "Standaardduur (seconden)",
+    "inventoryPollIntervalHelp": "Hoe vaak displaygroepen en lay-outs opnieuw moeten worden gelezen",
+    "inventoryPollIntervalLabel": "Voorraadvernieuwing (ms)",
+    "layoutFolderHelp": "Bied alleen lay-outs aan in deze CMS-map en lager. Laat leeg voor elke lay-out in het CMS.",
+    "layoutFolderLabel": "Lay-out map",
+    "pollHeader": "Polling",
+    "requestTimeoutHelp": "Hoe lang u op het CMS moet wachten voordat u een verzoek opgeeft",
+    "requestTimeoutLabel": "Time-out aanvragen (ms)",
+    "scopeHeader": "Wat te bieden",
+    "statusPollIntervalHelp": "Hoe vaak moet je opnieuw lezen welke displays online zijn en wat ze laten zien",
+    "statusPollIntervalLabel": "Statusvernieuwing (ms)",
+    "urlHelp": "De CMS-hoofdmap, zonder het achtervoegsel /api",
+    "urlLabel": "CMS-URL"
+}

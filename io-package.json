@@ -4,17 +4,54 @@
     "version": "0.1.0",
     "news": {
       "0.1.0": {
-        "en": "Initial release: display group inventory, layout inventory, and change layout / revert to schedule commands."
+        "en": "Initial release: display group inventory, layout inventory, and change layout / revert to schedule commands.",
+        "de": "Erste Version: Bestandsliste der Anzeigegruppen und Layouts sowie Befehle zum Layoutwechsel und zur Rückkehr zum Zeitplan.",
+        "ru": "Первый выпуск: список групп дисплеев и макетов, команды смены макета и возврата к расписанию.",
+        "pt": "Primeira versão: inventário de grupos de ecrãs e layouts, e comandos para mudar de layout e voltar ao agendamento.",
+        "nl": "Eerste versie: inventaris van schermgroepen en lay-outs, en opdrachten voor lay-outwissel en terug naar schema.",
+        "fr": "Première version : inventaire des groupes d'écrans et des mises en page, et commandes de changement et de retour à la programmation.",
+        "it": "Prima versione: inventario di gruppi di display e layout, e comandi per cambiare layout e tornare alla programmazione.",
+        "es": "Primera versión: inventario de grupos de pantallas y diseños, y comandos para cambiar de diseño y volver a la programación.",
+        "pl": "Pierwsza wersja: lista grup wyświetlaczy i układów oraz polecenia zmiany układu i powrotu do harmonogramu.",
+        "uk": "Перший випуск: перелік груп дисплеїв і макетів, команди зміни макета та повернення до розкладу.",
+        "zh-cn": "首个版本：显示组和布局清单，以及切换布局和恢复计划的命令。"
       }
     },
-    "title": "Xibo Digital Signage",
-    "titleLang": { "en": "Xibo Digital Signage" },
-    "desc": {
-      "en": "Play a layout on a Xibo display group and revert it to schedule, plus display and layout inventory."
+    "titleLang": {
+      "en": "Xibo Digital Signage",
+      "de": "Xibo Digital Signage",
+      "ru": "Xibo Digital Signage",
+      "pt": "Xibo Digital Signage",
+      "nl": "Xibo Digital Signage",
+      "fr": "Xibo Digital Signage",
+      "it": "Xibo Digital Signage",
+      "es": "Xibo Digital Signage",
+      "pl": "Xibo Digital Signage",
+      "uk": "Xibo Digital Signage",
+      "zh-cn": "Xibo 数字标牌"
     },
-    "authors": ["Alan Paris"],
-    "keywords": ["xibo", "digital signage", "led", "display"],
-    "license": "MIT",
+    "desc": {
+      "en": "Play a layout on a Xibo display group and revert it to schedule, plus display and layout inventory.",
+      "de": "Ein Layout auf einer Xibo-Anzeigegruppe abspielen und zum Zeitplan zurückkehren, mit Bestandsliste der Anzeigen und Layouts.",
+      "ru": "Воспроизведение макета на группе дисплеев Xibo и возврат к расписанию, а также список дисплеев и макетов.",
+      "pt": "Reproduzir um layout num grupo de ecrãs Xibo e voltar ao agendamento, com inventário de ecrãs e layouts.",
+      "nl": "Speel een lay-out af op een Xibo-schermgroep en keer terug naar het schema, plus inventaris van schermen en lay-outs.",
+      "fr": "Diffuser une mise en page sur un groupe d'écrans Xibo et revenir à la programmation, avec l'inventaire des écrans et des mises en page.",
+      "it": "Riproduci un layout su un gruppo di display Xibo e torna alla programmazione, con inventario di display e layout.",
+      "es": "Reproducir un diseño en un grupo de pantallas Xibo y volver a la programación, con inventario de pantallas y diseños.",
+      "pl": "Odtwórz układ na grupie wyświetlaczy Xibo i wróć do harmonogramu, wraz z listą wyświetlaczy i układów.",
+      "uk": "Відтворення макета на групі дисплеїв Xibo та повернення до розкладу, а також перелік дисплеїв і макетів.",
+      "zh-cn": "在 Xibo 显示组上播放布局并恢复计划，并提供显示器和布局清单。"
+    },
+    "authors": [
+      "Alan Paris"
+    ],
+    "keywords": [
+      "xibo",
+      "digital signage",
+      "led",
+      "display"
+    ],
     "platform": "Javascript/Node.js",
     "mode": "daemon",
     "type": "multimedia",
@@ -26,11 +63,30 @@
     "enabled": true,
     "readme": "https://github.com/AlanSRU/ioBroker.xibo/blob/main/README.md",
     "loglevel": "info",
-    "adminUI": { "config": "json" },
-    "encryptedNative": ["clientSecret"],
-    "protectedNative": ["clientSecret"],
-    "dependencies": [{ "js-controller": ">=5.0.19" }],
-    "globalDependencies": [{ "admin": ">=6.0.0" }]
+    "adminUI": {
+      "config": "json"
+    },
+    "encryptedNative": [
+      "clientSecret"
+    ],
+    "protectedNative": [
+      "clientId",
+      "clientSecret"
+    ],
+    "dependencies": [
+      {
+        "js-controller": ">=6.0.11"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=7.6.17"
+      }
+    ],
+    "licenseInformation": {
+      "type": "free",
+      "license": "MIT"
+    }
   },
   "native": {
     "url": "",
@@ -47,14 +103,18 @@
     {
       "_id": "info",
       "type": "channel",
-      "common": { "name": "Connection and diagnostics" },
+      "common": {
+        "name": "Connection and diagnostics"
+      },
       "native": {}
     },
     {
       "_id": "info.connection",
       "type": "state",
       "common": {
-        "name": { "en": "CMS reachable and credentials valid" },
+        "name": {
+          "en": "CMS reachable and credentials valid"
+        },
         "type": "boolean",
         "role": "indicator.connected",
         "read": true,

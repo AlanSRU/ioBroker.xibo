@@ -1,0 +1,21 @@
+{
+    "cmsHeader": "Xibo CMS",
+    "urlLabel": "CMS URL",
+    "urlHelp": "The CMS root, without the /api suffix",
+    "clientIdLabel": "Client ID",
+    "clientIdHelp": "From Administration -> Applications in the CMS. The application must allow the client_credentials grant.",
+    "clientSecretLabel": "Client secret",
+    "clientSecretHelp": "The secret value, not the secret ID",
+    "scopeHeader": "What to offer",
+    "layoutFolderLabel": "Layout folder",
+    "layoutFolderHelp": "Only offer layouts in this CMS folder and below. Leave empty for every layout in the CMS.",
+    "defaultChangeDurationLabel": "Default duration (seconds)",
+    "defaultChangeDurationHelp": "How long a layout stays before the display returns to its schedule. 0 means it stays until reverted.",
+    "pollHeader": "Polling",
+    "inventoryPollIntervalLabel": "Inventory refresh (ms)",
+    "inventoryPollIntervalHelp": "How often to re-read display groups and layouts",
+    "statusPollIntervalLabel": "Status refresh (ms)",
+    "statusPollIntervalHelp": "How often to re-read which displays are online and what they are showing",
+    "requestTimeoutLabel": "Request timeout (ms)",
+    "requestTimeoutHelp": "How long to wait for the CMS before giving up on a request"
+}

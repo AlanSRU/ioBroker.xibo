@@ -122,14 +122,14 @@ export const STATE_DEFINITIONS: StateDefinition[] = [
 
 /** Per display group, under `displayGroups.<sanitised name>`. */
 export const DISPLAY_GROUP_STATE_SUFFIXES: StateDefinition[] = [
-    { id: "id", name: "Display group id", type: "number", role: "value", read: true, write: false },
-    { id: "name", name: "Display group name", type: "string", role: "text", read: true, write: false },
-    { id: "displayCount", name: "Displays in this group", type: "number", role: "value", read: true, write: false },
-    { id: "displaysOnline", name: "Displays currently logged in", type: "number", role: "value", read: true, write: false },
-    { id: "currentLayout", name: "Layout reported by the first display in the group", type: "string", role: "text", read: true, write: false },
+    { id: "id", name: "Display group id", type: "number", role: "value", read: true, write: false, def: 0 },
+    { id: "name", name: "Display group name", type: "string", role: "text", read: true, write: false, def: "" },
+    { id: "displayCount", name: "Displays in this group", type: "number", role: "value", read: true, write: false, def: 0 },
+    { id: "displaysOnline", name: "Displays currently logged in", type: "number", role: "value", read: true, write: false, def: 0 },
+    { id: "currentLayout", name: "Layout reported by the first display in the group", type: "string", role: "text", read: true, write: false, def: "" },
     // Writable: the whole point of the adapter — press a button, play a layout.
-    { id: "playLayoutId", name: "Write a layoutId to play it on this group", type: "number", role: "level", read: true, write: true },
-    { id: "revert", name: "Return this group to its schedule", type: "boolean", role: "button", read: false, write: true },
+    { id: "playLayoutId", name: "Write a layoutId to play it on this group", type: "number", role: "level", read: true, write: true, def: 0 },
+    { id: "revert", name: "Return this group to its schedule", type: "boolean", role: "button", read: false, write: true, def: false },
 ];
 
 /**

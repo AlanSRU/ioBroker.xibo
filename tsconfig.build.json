@@ -17,8 +17,17 @@
         "noUnusedParameters": true,
         "sourceMap": true,
         "skipLibCheck": true,
-        "types": ["@iobroker/types", "node"]
+        "types": [
+            "@iobroker/types",
+            "node"
+        ]
     },
-    "include": ["src/**/*.ts"],
-    "exclude": ["node_modules/**", "build/**"]
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules/**",
+        "build/**",
+        "test/**"
+    ]
 }

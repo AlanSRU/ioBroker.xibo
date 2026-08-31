@@ -1,0 +1,21 @@
+{
+    "clientIdHelp": "З Адміністрування -> Програми в CMS. Програма має дозволяти надання client_credentials.",
+    "clientIdLabel": "ID клієнта",
+    "clientSecretHelp": "Секретне значення, а не секретний ідентифікатор",
+    "clientSecretLabel": "Секрет клієнта",
+    "cmsHeader": "Xibo CMS",
+    "defaultChangeDurationHelp": "Скільки часу залишається макет, перш ніж дисплей повернеться до свого розкладу. 0 означає, що він залишається до повернення.",
+    "defaultChangeDurationLabel": "Тривалість за замовчуванням (у секундах)",
+    "inventoryPollIntervalHelp": "Як часто перечитувати групи відображення та макети",
+    "inventoryPollIntervalLabel": "Оновлення запасів (мс)",
+    "layoutFolderHelp": "Пропонуйте лише макети в цій папці CMS і нижче. Залиште порожнім для кожного макета в CMS.",
+    "layoutFolderLabel": "Макет папки",
+    "pollHeader": "Опитування",
+    "requestTimeoutHelp": "Як довго чекати на CMS, перш ніж відмовитися від запиту",
+    "requestTimeoutLabel": "Час очікування запиту (мс)",
+    "scopeHeader": "Що запропонувати",
+    "statusPollIntervalHelp": "Як часто перечитувати, які дисплеї онлайн і що вони показують",
+    "statusPollIntervalLabel": "Оновлення статусу (мс)",
+    "urlHelp": "Корінь CMS без суфікса /api",
+    "urlLabel": "URL CMS"
+}

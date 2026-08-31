@@ -1,0 +1,21 @@
+{
+    "clientIdHelp": "Depuis Administration -> Applications dans le CMS. L’application doit autoriser l’octroi client_credentials.",
+    "clientIdLabel": "Identifiant client",
+    "clientSecretHelp": "La valeur secrète, pas l'ID secret",
+    "clientSecretLabel": "Secret client",
+    "cmsHeader": "Xibo CMS",
+    "defaultChangeDurationHelp": "Combien de temps une mise en page reste avant que l'affichage ne revienne à sa planification. 0 signifie qu'il reste jusqu'à ce qu'il soit rétabli.",
+    "defaultChangeDurationLabel": "Durée par défaut (secondes)",
+    "inventoryPollIntervalHelp": "À quelle fréquence relire les groupes d’affichage et les dispositions",
+    "inventoryPollIntervalLabel": "Actualisation de l'inventaire (ms)",
+    "layoutFolderHelp": "Proposez uniquement des mises en page dans ce dossier CMS et ci-dessous. Laissez vide pour chaque mise en page dans le CMS.",
+    "layoutFolderLabel": "Dossier de mise en page",
+    "pollHeader": "Vote",
+    "requestTimeoutHelp": "Combien de temps attendre le CMS avant d'abandonner une requête",
+    "requestTimeoutLabel": "Délai d'expiration de la demande (ms)",
+    "scopeHeader": "Quoi offrir",
+    "statusPollIntervalHelp": "À quelle fréquence relire quels écrans sont en ligne et ce qu'ils montrent",
+    "statusPollIntervalLabel": "Actualisation du statut (ms)",
+    "urlHelp": "La racine du CMS, sans le suffixe /api",
+    "urlLabel": "URL du CMS"
+}
