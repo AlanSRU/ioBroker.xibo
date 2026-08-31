@@ -1,0 +1,65 @@
+{
+    "i18n": false,
+    "type": "panel",
+    "items": {
+        "_cmsHeader": { "type": "header", "text": "Xibo CMS", "size": 2 },
+        "url": {
+            "type": "text",
+            "label": "CMS URL",
+            "sm": 12, "md": 6, "lg": 6,
+            "placeholder": "https://signage.internal",
+            "tooltip": "The CMS root, without the /api suffix"
+        },
+        "clientId": {
+            "type": "text",
+            "label": "Client ID",
+            "sm": 12, "md": 6, "lg": 6,
+            "tooltip": "From Administration -> Applications in the CMS. The application must allow the client_credentials grant."
+        },
+        "clientSecret": {
+            "type": "password",
+            "label": "Client Secret",
+            "sm": 12, "md": 6, "lg": 6,
+            "repeat": false,
+            "visible": true
+        },
+
+        "_scopeHeader": { "type": "header", "text": "What to offer", "size": 2 },
+        "layoutFolder": {
+            "type": "text",
+            "label": "Layout folder",
+            "sm": 12, "md": 6, "lg": 6,
+            "placeholder": "Pixelmabob",
+            "tooltip": "Only offer layouts in this CMS folder and below. Leave empty for every layout in the CMS."
+        },
+        "defaultChangeDuration": {
+            "type": "number",
+            "label": "Default duration (seconds)",
+            "sm": 12, "md": 6, "lg": 6,
+            "min": 0,
+            "tooltip": "How long a layout stays before the display returns to its schedule. 0 means it stays until reverted."
+        },
+
+        "_pollHeader": { "type": "header", "text": "Polling", "size": 2 },
+        "inventoryPollInterval": {
+            "type": "number",
+            "label": "Inventory refresh (ms)",
+            "sm": 12, "md": 4, "lg": 4,
+            "min": 30000,
+            "tooltip": "How often to re-read display groups and layouts"
+        },
+        "statusPollInterval": {
+            "type": "number",
+            "label": "Status refresh (ms)",
+            "sm": 12, "md": 4, "lg": 4,
+            "min": 5000,
+            "tooltip": "How often to re-read which displays are online and what they are showing"
+        },
+        "requestTimeout": {
+            "type": "number",
+            "label": "Request timeout (ms)",
+            "sm": 12, "md": 4, "lg": 4,
+            "min": 2000
+        }
+    }
+}

@@ -1,0 +1,67 @@
+{
+  "common": {
+    "name": "xibo",
+    "version": "0.1.0",
+    "news": {
+      "0.1.0": {
+        "en": "Initial release: display group inventory, layout inventory, and change layout / revert to schedule commands."
+      }
+    },
+    "title": "Xibo Digital Signage",
+    "titleLang": { "en": "Xibo Digital Signage" },
+    "desc": {
+      "en": "Play a layout on a Xibo display group and revert it to schedule, plus display and layout inventory."
+    },
+    "authors": ["Alan Paris"],
+    "keywords": ["xibo", "digital signage", "led", "display"],
+    "license": "MIT",
+    "platform": "Javascript/Node.js",
+    "mode": "daemon",
+    "type": "multimedia",
+    "compact": true,
+    "connectionType": "local",
+    "dataSource": "poll",
+    "icon": "xibo.png",
+    "extIcon": "https://raw.githubusercontent.com/AlanSRU/ioBroker.xibo/main/admin/xibo.png",
+    "enabled": true,
+    "readme": "https://github.com/AlanSRU/ioBroker.xibo/blob/main/README.md",
+    "loglevel": "info",
+    "adminUI": { "config": "json" },
+    "encryptedNative": ["clientSecret"],
+    "protectedNative": ["clientSecret"],
+    "dependencies": [{ "js-controller": ">=5.0.19" }],
+    "globalDependencies": [{ "admin": ">=6.0.0" }]
+  },
+  "native": {
+    "url": "",
+    "clientId": "",
+    "clientSecret": "",
+    "inventoryPollInterval": 300000,
+    "statusPollInterval": 30000,
+    "requestTimeout": 30000,
+    "layoutFolder": "Pixelmabob",
+    "defaultChangeDuration": 0
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": { "name": "Connection and diagnostics" },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "name": { "en": "CMS reachable and credentials valid" },
+        "type": "boolean",
+        "role": "indicator.connected",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    }
+  ]
+}

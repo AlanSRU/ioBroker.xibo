@@ -1,0 +1,30 @@
+{
+  "name": "iobroker.xibo",
+  "version": "0.1.0",
+  "description": "Control Xibo digital signage displays: change the layout playing on a display group, revert to schedule, and read display status.",
+  "author": { "name": "Alan Paris" },
+  "homepage": "https://github.com/AlanSRU/ioBroker.xibo",
+  "license": "MIT",
+  "keywords": ["ioBroker", "xibo", "digital signage", "led"],
+  "repository": { "type": "git", "url": "git+https://github.com/AlanSRU/ioBroker.xibo.git" },
+  "engines": { "node": ">=18.0.0" },
+  "main": "build/main.js",
+  "files": ["admin/", "build/", "io-package.json", "LICENSE"],
+  "scripts": {
+    "prebuild": "rimraf build",
+    "build": "tsc -p tsconfig.build.json",
+    "watch": "tsc -p tsconfig.build.json --watch",
+    "check": "tsc --noEmit",
+    "lint": "eslint --ext .ts src/"
+  },
+  "devDependencies": {
+    "@iobroker/adapter-dev": "^1.3.0",
+    "@iobroker/types": "^6.0.11",
+    "@types/node": "^22.10.0",
+    "rimraf": "^6.0.1",
+    "typescript": "~5.7.0"
+  },
+  "dependencies": {
+    "@iobroker/adapter-core": "^3.2.3"
+  }
+}
