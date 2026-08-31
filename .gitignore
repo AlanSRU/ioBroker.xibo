@@ -6,3 +6,7 @@ build/
 # Local development notes, never published or committed.
 CLAUDE.md
 .commitinfo
+
+# Local pre-release review marker — never commit; a committed marker would
+# look fresh in a new clone and defeat the release gate.
+.review/
