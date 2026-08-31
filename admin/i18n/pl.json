@@ -10,6 +10,7 @@
     "inventoryPollIntervalLabel": "Odświeżanie zapasów (ms)",
     "layoutFolderHelp": "Oferuj układy tylko w tym folderze CMS i poniżej. Pozostaw puste dla każdego układu w CMS.",
     "layoutFolderLabel": "Folder układu",
+    "layoutFolderPlaceholder": "Pixelmaboba",
     "pollHeader": "Ankieta",
     "requestTimeoutHelp": "Jak długo czekać na CMS zanim zrezygnujesz z żądania",
     "requestTimeoutLabel": "Limit czasu żądania (ms)",
@@ -17,5 +18,6 @@
     "statusPollIntervalHelp": "Jak często ponownie czytać, które wyświetlacze są online i co pokazują",
     "statusPollIntervalLabel": "Odświeżanie stanu (ms)",
     "urlHelp": "Katalog główny CMS, bez przyrostka /api",
-    "urlLabel": "Adres URL systemu CMS"
+    "urlLabel": "Adres URL systemu CMS",
+    "urlPlaceholder": "https://signage.internal"
 }

@@ -49,14 +49,16 @@ export class XiboClient {
         return this.token;
     }
 
-    private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), this.config.requestTimeout);
-        try {
-            return await fetch(url, { ...init, signal: controller.signal });
-        } finally {
-            clearTimeout(timer);
-        }
+    /**
+     * A request with a deadline.
+     *
+     * `AbortSignal.timeout` rather than a bare `setTimeout`: this class holds no
+     * adapter instance to take `this.setTimeout` from, and a framework-managed
+     * timer is the wrong tool for a per-request deadline — it would outlive the
+     * request it belongs to.
+     */
+    private fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+        return fetch(url, { ...init, signal: AbortSignal.timeout(this.config.requestTimeout) });
     }
 
     private async request(path: string, init: RequestInit = {}): Promise<unknown> {

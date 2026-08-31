@@ -66,13 +66,6 @@
     "adminUI": {
       "config": "json"
     },
-    "encryptedNative": [
-      "clientSecret"
-    ],
-    "protectedNative": [
-      "clientId",
-      "clientSecret"
-    ],
     "dependencies": [
       {
         "js-controller": ">=6.0.11"
@@ -80,13 +73,14 @@
     ],
     "globalDependencies": [
       {
-        "admin": ">=7.6.17"
+        "admin": ">=7.6.20"
       }
     ],
     "licenseInformation": {
       "type": "free",
       "license": "MIT"
-    }
+    },
+    "tier": 3
   },
   "native": {
     "url": "",
@@ -123,5 +117,12 @@
       },
       "native": {}
     }
+  ],
+  "protectedNative": [
+    "clientId",
+    "clientSecret"
+  ],
+  "encryptedNative": [
+    "clientSecret"
   ]
 }

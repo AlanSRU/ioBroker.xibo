@@ -10,6 +10,7 @@
     "inventoryPollIntervalLabel": "Оновлення запасів (мс)",
     "layoutFolderHelp": "Пропонуйте лише макети в цій папці CMS і нижче. Залиште порожнім для кожного макета в CMS.",
     "layoutFolderLabel": "Макет папки",
+    "layoutFolderPlaceholder": "Pixelmabob",
     "pollHeader": "Опитування",
     "requestTimeoutHelp": "Як довго чекати на CMS, перш ніж відмовитися від запиту",
     "requestTimeoutLabel": "Час очікування запиту (мс)",
@@ -17,5 +18,6 @@
     "statusPollIntervalHelp": "Як часто перечитувати, які дисплеї онлайн і що вони показують",
     "statusPollIntervalLabel": "Оновлення статусу (мс)",
     "urlHelp": "Корінь CMS без суфікса /api",
-    "urlLabel": "URL CMS"
+    "urlLabel": "URL CMS",
+    "urlPlaceholder": "https://signage.internal"
 }

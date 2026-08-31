@@ -10,6 +10,7 @@
     "inventoryPollIntervalLabel": "Voorraadvernieuwing (ms)",
     "layoutFolderHelp": "Bied alleen lay-outs aan in deze CMS-map en lager. Laat leeg voor elke lay-out in het CMS.",
     "layoutFolderLabel": "Lay-out map",
+    "layoutFolderPlaceholder": "Pixelmabob",
     "pollHeader": "Polling",
     "requestTimeoutHelp": "Hoe lang u op het CMS moet wachten voordat u een verzoek opgeeft",
     "requestTimeoutLabel": "Time-out aanvragen (ms)",
@@ -17,5 +18,6 @@
     "statusPollIntervalHelp": "Hoe vaak moet je opnieuw lezen welke displays online zijn en wat ze laten zien",
     "statusPollIntervalLabel": "Statusvernieuwing (ms)",
     "urlHelp": "De CMS-hoofdmap, zonder het achtervoegsel /api",
-    "urlLabel": "CMS-URL"
+    "urlLabel": "CMS-URL",
+    "urlPlaceholder": "https://signage.internal"
 }

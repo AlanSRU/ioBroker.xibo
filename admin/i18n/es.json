@@ -10,6 +10,7 @@
     "inventoryPollIntervalLabel": "Actualización de inventario (ms)",
     "layoutFolderHelp": "Ofrezca diseños únicamente en esta carpeta CMS y a continuación. Déjelo vacío para cada diseño del CMS.",
     "layoutFolderLabel": "Carpeta de diseño",
+    "layoutFolderPlaceholder": "Pixelmabob",
     "pollHeader": "Votación",
     "requestTimeoutHelp": "¿Cuánto tiempo esperar al CMS antes de abandonar una solicitud?",
     "requestTimeoutLabel": "Solicitar tiempo de espera (ms)",
@@ -17,5 +18,6 @@
     "statusPollIntervalHelp": "Con qué frecuencia volver a leer qué pantallas están en línea y qué muestran",
     "statusPollIntervalLabel": "Actualización de estado (ms)",
     "urlHelp": "La raíz del CMS, sin el sufijo /api",
-    "urlLabel": "URL del CMS"
+    "urlLabel": "URL del CMS",
+    "urlPlaceholder": "https://signage.internal"
 }

@@ -82,7 +82,20 @@ folder exactly, so scoping to a root folder alone finds nothing when layouts sit
 in per-project subfolders — which is how Pixelmabob files them. The adapter walks
 the folder tree and filters against it.
 
+## Changelog
+
+### 0.1.0
+
+- Initial release: display group and layout inventory, and change layout /
+  overlay layout / revert to schedule / collect now commands.
+
 ## Related
 
 - [pixelmabob](../pixelmabob/) — authors the designs and publishes the layouts this adapter plays
 - [iobroker.streamdeck](../iobroker.streamdeck/) — the decks that drive it
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+Copyright (c) 2026 Alan Paris

@@ -10,6 +10,7 @@
     "inventoryPollIntervalLabel": "库存刷新（毫秒）",
     "layoutFolderHelp": "仅提供此 CMS 文件夹及以下文件夹中的布局。将 CMS 中的每个布局留空。",
     "layoutFolderLabel": "布局文件夹",
+    "layoutFolderPlaceholder": "像素玛博",
     "pollHeader": "轮询",
     "requestTimeoutHelp": "在放弃请求之前等待 CMS 多长时间",
     "requestTimeoutLabel": "请求超时（毫秒）",
@@ -17,5 +18,6 @@
     "statusPollIntervalHelp": "多久重新读取哪些显示器在线以及它们显示的内容",
     "statusPollIntervalLabel": "状态刷新（毫秒）",
     "urlHelp": "CMS 根目录，不带 /api 后缀",
-    "urlLabel": "内容管理系统网址"
+    "urlLabel": "内容管理系统网址",
+    "urlPlaceholder": "https://signage.internal"
 }

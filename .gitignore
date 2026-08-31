@@ -5,3 +5,4 @@ build/
 
 # Local development notes, never published or committed.
 CLAUDE.md
+.commitinfo

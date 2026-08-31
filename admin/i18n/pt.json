@@ -10,6 +10,7 @@
     "inventoryPollIntervalLabel": "Atualização de inventário (ms)",
     "layoutFolderHelp": "Ofereça layouts apenas nesta pasta CMS e abaixo. Deixe em branco para cada layout no CMS.",
     "layoutFolderLabel": "Pasta de layout",
+    "layoutFolderPlaceholder": "Pixelmabob",
     "pollHeader": "Votação",
     "requestTimeoutHelp": "Quanto tempo esperar pelo CMS antes de desistir de uma solicitação",
     "requestTimeoutLabel": "Tempo limite da solicitação (ms)",
@@ -17,5 +18,6 @@
     "statusPollIntervalHelp": "Com que frequência reler quais telas estão online e o que estão mostrando",
     "statusPollIntervalLabel": "Atualização de status (ms)",
     "urlHelp": "A raiz do CMS, sem o sufixo /api",
-    "urlLabel": "URL do CMS"
+    "urlLabel": "URL do CMS",
+    "urlPlaceholder": "https://signage.internal"
 }

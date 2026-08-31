@@ -10,6 +10,7 @@
     "inventoryPollIntervalLabel": "Inventaraktualisierung (ms)",
     "layoutFolderHelp": "Bieten Sie nur Layouts in diesem CMS-Ordner und darunter an. Für jedes Layout im CMS leer lassen.",
     "layoutFolderLabel": "Layout-Ordner",
+    "layoutFolderPlaceholder": "Pixelmabob",
     "pollHeader": "Umfrage",
     "requestTimeoutHelp": "Wie lange muss auf das CMS gewartet werden, bevor eine Anfrage aufgegeben wird?",
     "requestTimeoutLabel": "Anforderungszeitüberschreitung (ms)",
@@ -17,5 +18,6 @@
     "statusPollIntervalHelp": "Wie oft muss erneut nachgelesen werden, welche Displays online sind und was sie anzeigen?",
     "statusPollIntervalLabel": "Statusaktualisierung (ms)",
     "urlHelp": "Das CMS-Stammverzeichnis ohne das Suffix /api",
-    "urlLabel": "CMS-URL"
+    "urlLabel": "CMS-URL",
+    "urlPlaceholder": "https://signage.internal"
 }
