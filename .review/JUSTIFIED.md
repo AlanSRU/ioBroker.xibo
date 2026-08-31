@@ -32,3 +32,16 @@ repository.
 
 All downstream of the above: there is no published release for the checker to
 inspect, and the first workflow run has no completed jobs to read.
+
+## Review record
+
+V2.0 review passed at round 3, with a fresh reviewer each round.
+
+- Round 1 — FAIL, 7 findings: unclamped intervals, overlapping polls, no unload
+  gating, a refresh that reported success when it failed, a five-minute window
+  where writes were rejected while reporting connected, an author-specific
+  folder default warning every poll, and a bare setTimeout.
+- Round 2 — FAIL, 2 findings, both defects *in round 1's fixes*: the unload guard
+  applied to one poll path but not the other, and a folder latch that closed
+  before its await so a timeout permanently disabled folder scoping.
+- Round 3 — PASS, no action needed.
