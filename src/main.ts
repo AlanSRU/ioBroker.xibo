@@ -211,9 +211,14 @@ class XiboAdapter extends utils.Adapter {
             // Looked up once. Warning on every cycle about a folder that does
             // not exist would fill the log for the life of the instance.
             if (config.layoutFolder && this.layoutFolderId === null && !this.layoutFolderChecked) {
+                const found = await this.client.findFolderPath(config.layoutFolder);
+                // Latched only once the CMS has actually answered. Closing it
+                // before the await turned a timeout into permanent loss of
+                // folder scoping, and the deck would then be offered every
+                // layout in the CMS with nothing logged.
                 this.layoutFolderChecked = true;
-                this.layoutFolderId = await this.client.findFolderPath(config.layoutFolder);
-                if (this.layoutFolderId === null) {
+                this.layoutFolderId = found;
+                if (found === null) {
                     this.log.warn(
                         `Layout folder "${config.layoutFolder}" not found in the CMS — offering all layouts instead.`,
                     );
@@ -232,9 +237,14 @@ class XiboAdapter extends utils.Adapter {
 
             // Display-specific groups are Xibo's internal per-display groups;
             // they are not what an operator would ever pick on a deck.
+            if (this.unloaded) return false;
             const pickable = groups.filter((g) => g.isDisplaySpecific !== 1);
 
-            for (const group of pickable) await this.ensureGroupObject(group);
+            for (const group of pickable) {
+                if (this.unloaded) return false;
+                await this.ensureGroupObject(group);
+            }
+            if (this.unloaded) return false;
 
             await this.setState("inventory.displayGroupsJson", { val: JSON.stringify(pickable), ack: true });
             await this.setState("inventory.displaysJson", { val: JSON.stringify(displays), ack: true });
@@ -265,6 +275,7 @@ class XiboAdapter extends utils.Adapter {
                 // loop can be mid-await when that happens.
                 if (this.unloaded) return;
                 const inGroup = await client.listDisplaysInGroup(entry.displayGroupId);
+                if (this.unloaded) return;
                 const online = inGroup.filter((d) => d.loggedIn === 1);
 
                 await this.setState(`${entry.objectId}.id`, { val: entry.displayGroupId, ack: true });
