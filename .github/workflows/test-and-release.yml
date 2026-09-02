@@ -55,8 +55,24 @@ jobs:
       - run: npm run build
       - run: npm test
 
+  # Starts a real js-controller and loads the built adapter under it. The unit
+  # suite tests exported definitions and cannot see a crash in onReady, a bad
+  # `common` or a state written before its parent exists; only this can.
+  integration-tests:
+    needs: [check-and-lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:integration
+
   deploy:
-    needs: [adapter-tests]
+    needs: [adapter-tests, integration-tests]
     # Only a version tag publishes; ordinary pushes stop at the tests.
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest

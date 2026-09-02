@@ -131,6 +131,16 @@ the folder tree and filters against it.
 
 ## Changelog
 
+<!--
+	Placeholder for the next version (at the beginning of the line):
+	### __WORK IN PROGRESS__
+-->
+### __WORK IN PROGRESS__
+
+- Release tooling: `npm run release` now drives the version bump, so
+  `package.json`, `io-package.json` and this changelog cannot drift apart.
+- Integration test that starts the adapter under a real js-controller.
+
 ### 0.2.0
 
 - **Layout changes now reach Arexibo and gaxibo players.** Those players do not

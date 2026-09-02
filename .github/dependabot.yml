@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    # A cron schedule rather than `interval: monthly`, staggered against the
+    # github-actions ecosystem below so the two do not open PRs on the same day.
+    schedule: { interval: cron, cronjob: "17 3 9 * *", timezone: Europe/London }
+    open-pull-requests-limit: 15
+    cooldown: { default-days: 7 }
+    ignore:
+      # @types/node tracks engines.node, so a major bump has to be deliberate.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # These two need config and source migrations, not a merge.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: cron, cronjob: "41 6 16 * *", timezone: Europe/London }
+    open-pull-requests-limit: 15
+    cooldown: { default-days: 7 }
