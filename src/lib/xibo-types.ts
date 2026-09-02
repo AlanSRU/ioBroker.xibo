@@ -302,3 +302,42 @@ export function parseDurationSeconds(value: unknown, fallback: number): number {
     }
     return seconds;
 }
+
+/**
+ * The `command` and `payload` a failed write should be recorded under.
+ *
+ * `commands.lastResult` is documented as `{ok, command, payload, error?, ts}`
+ * and is the state a deck reads to find out whether its press worked. The
+ * success and failure paths used to describe the same write differently: a
+ * working `commands.changeLayout` recorded `command: "changeLayout"` with the
+ * parsed payload, while a failing one recorded `command:
+ * "commands.changeLayout"` with the raw string, and a failing per-group write
+ * recorded `command: "displayGroups.led_walls.playLayoutId"` with a bare
+ * number. A consumer matching `command === "changeLayout"` to decide whether
+ * its own press succeeded therefore matched every success and no failure, and
+ * reported a failed press as still pending.
+ *
+ * So both paths name the write the same way: the last id segment, which is
+ * already what the success paths pass.
+ */
+export function describeWrite(local: string, value: unknown): { command: string; payload: unknown } {
+    const segments = local.split(".");
+    const command = segments[segments.length - 1] ?? local;
+
+    // A command payload is JSON, and the caller wants it back in the shape it
+    // sent — but the throw may have been the parse itself, so an unparseable
+    // value is recorded verbatim rather than lost.
+    if (segments[0] === "commands" && typeof value === "string" && value.trim().length > 0) {
+        try {
+            return { command, payload: JSON.parse(value) };
+        } catch {
+            return { command, payload: value };
+        }
+    }
+    // A per-group write is a bare value, so the group it was aimed at is the
+    // only context worth keeping.
+    if (segments[0] === "displayGroups" && segments.length >= 3) {
+        return { command, payload: { displayGroup: segments[1], value } };
+    }
+    return { command, payload: value };
+}

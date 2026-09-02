@@ -1,8 +1,9 @@
 import * as utils from "@iobroker/adapter-core";
 import { XiboClient } from "./lib/xibo-client";
 import {
-    CHANNEL_DEFINITIONS, DISPLAY_GROUP_STATE_SUFFIXES, evaluateHealth, inventoryStateDefinitions,
-    parseDurationSeconds, sanitizeId, STATE_DEFINITIONS, StateDefinition, XiboConfig, XiboDisplayGroup,
+    CHANNEL_DEFINITIONS, describeWrite, DISPLAY_GROUP_STATE_SUFFIXES, evaluateHealth,
+    inventoryStateDefinitions, parseDurationSeconds, sanitizeId, STATE_DEFINITIONS, StateDefinition,
+    XiboConfig, XiboDisplayGroup,
 } from "./lib/xibo-types";
 import {
     COLLECTIONS, CollectionDefinition, collectionRows, collectionStateIds, selectedCollections,
@@ -158,8 +159,16 @@ class XiboAdapter extends utils.Adapter {
         // Parent channels are created explicitly: the runtime tolerates missing
         // parents, so a nested state would look fine while the object tree is
         // actually broken.
+        // extendObject, not setObjectNotExists: the latter never rewrites an
+        // object that already exists, so a corrected name, role, type or def
+        // would reach only fresh installations and every existing instance
+        // would keep the old definition for ever — with nothing in the code,
+        // the tests or repochecker showing it. This release renames the
+        // `inventory` channel and three count labels, which is exactly that
+        // situation. Merging leaves user-owned `common.custom` (history and
+        // InfluxDB settings) alone.
         for (const channel of CHANNEL_DEFINITIONS) {
-            await this.setObjectNotExistsAsync(channel.id, {
+            await this.extendObjectAsync(channel.id, {
                 type: "channel",
                 common: { name: channel.name },
                 native: {},
@@ -169,7 +178,7 @@ class XiboAdapter extends utils.Adapter {
         const mirrored = this.mirroredCollections();
         const states: StateDefinition[] = [...STATE_DEFINITIONS, ...inventoryStateDefinitions(mirrored)];
         for (const state of states) {
-            await this.setObjectNotExistsAsync(state.id, {
+            await this.extendObjectAsync(state.id, {
                 type: "state",
                 common: {
                     name: state.name,
@@ -226,6 +235,10 @@ class XiboAdapter extends utils.Adapter {
         const clash = [...this.groupIndex.values()].some((g) => g.objectId === objectId);
         if (clash) objectId = `${objectId}_${group.displayGroupId}`;
 
+        // The one object deliberately left as setObjectNotExists: this channel
+        // is named after the CMS display group, and a user may well have
+        // renamed it in admin. Extending it would overwrite that on every
+        // start.
         await this.setObjectNotExistsAsync(objectId, {
             type: "channel",
             common: { name: group.displayGroup },
@@ -233,7 +246,7 @@ class XiboAdapter extends utils.Adapter {
         });
 
         for (const suffix of DISPLAY_GROUP_STATE_SUFFIXES) {
-            await this.setObjectNotExistsAsync(`${objectId}.${suffix.id}`, {
+            await this.extendObjectAsync(`${objectId}.${suffix.id}`, {
                 type: "state",
                 common: {
                     name: suffix.name,
@@ -512,7 +525,10 @@ class XiboAdapter extends utils.Adapter {
             }
         } catch (err) {
             this.log.error(`${local} failed: ${(err as Error).message}`);
-            await this.recordResult(local, state.val, false, (err as Error).message);
+            // Named the same way the success paths name it, so a caller keyed
+            // on `command` sees its failures as well as its successes.
+            const { command, payload } = describeWrite(local, state.val);
+            await this.recordResult(command, payload, false, (err as Error).message);
         }
     }
 

@@ -200,6 +200,20 @@ the folder tree and filters against it.
   changing an hour late, or a timed layout never appearing at all, with `ok`
   reported both times. It is now re-read hourly.
 
+- **`commands.lastResult` now describes a failure the same way as a success.**
+  A failing write recorded `command: "commands.changeLayout"` with the raw
+  string it was sent, where a working one recorded `command: "changeLayout"`
+  with the parsed payload — so a script matching `command === "changeLayout"`
+  to see whether its own press worked matched every success and no failure,
+  and reported a failed press as still pending. Both paths now use the short
+  name and a parsed payload.
+- **Object names and roles now reach upgraded instances**, not just fresh
+  installs. Adapter-owned metadata is merged with `extendObject` instead of
+  being written only when missing, so this release's renamed `inventory`
+  channel and count labels appear on existing instances too. Your own history
+  and InfluxDB settings on those states are left alone, and a display-group
+  channel you have renamed keeps your name.
+
 **New**
 
 - **`inventory.*` now mirrors 23 CMS collections**, not three: campaigns,

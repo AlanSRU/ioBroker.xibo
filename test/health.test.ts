@@ -1,5 +1,7 @@
 import { expect } from "chai";
-import { CONNECTION_FAILURE_THRESHOLD, evaluateHealth, parseDurationSeconds } from "../src/lib/xibo-types";
+import {
+    CONNECTION_FAILURE_THRESHOLD, describeWrite, evaluateHealth, parseDurationSeconds,
+} from "../src/lib/xibo-types";
 
 /**
  * These pin three rules that were each wrong in 0.2.0 and each failed
@@ -77,5 +79,39 @@ describe("parseDurationSeconds", () => {
         expect(parseDurationSeconds("30", 0)).to.equal(30);
         // 0 means "until reverted", which is a deliberate value, not absence.
         expect(parseDurationSeconds(0, 99)).to.equal(0);
+    });
+});
+
+describe("describeWrite", () => {
+    it("names a command write the same way the success path does", () => {
+        // A consumer matching command === "changeLayout" to decide whether its
+        // own press worked used to match every success and no failure, so a
+        // failed press read as still pending.
+        const { command, payload } = describeWrite("commands.changeLayout", '{"displayGroupId":5,"layoutId":41}');
+        expect(command).to.equal("changeLayout");
+        expect(payload).to.deep.equal({ displayGroupId: 5, layoutId: 41 });
+    });
+
+    it("records an unparseable payload verbatim rather than losing it", () => {
+        // The throw being recorded may have been the parse itself.
+        const { command, payload } = describeWrite("commands.changeLayout", "not json");
+        expect(command).to.equal("changeLayout");
+        expect(payload).to.equal("not json");
+    });
+
+    it("names a per-group write by its suffix, and keeps the group", () => {
+        const { command, payload } = describeWrite("displayGroups.led_walls.playLayoutId", 41);
+        expect(command).to.equal("playLayoutId");
+        expect(payload).to.deep.equal({ displayGroup: "led_walls", value: 41 });
+    });
+
+    it("agrees with the command names the success paths use", () => {
+        // These are the literals passed to recordResult on success.
+        const successNames = ["changeLayout", "overlayLayout", "revertToSchedule", "collectNow", "refresh", "api"];
+        for (const name of successNames) {
+            expect(describeWrite(`commands.${name}`, "").command).to.equal(name);
+        }
+        expect(describeWrite("displayGroups.g.playLayoutId", 1).command).to.equal("playLayoutId");
+        expect(describeWrite("displayGroups.g.revert", true).command).to.equal("revert");
     });
 });
