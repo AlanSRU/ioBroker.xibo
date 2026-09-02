@@ -26,5 +26,8 @@
     "statusPollIntervalLabel": "Actualización de estado (ms)",
     "urlHelp": "La raíz del CMS, sin el sufijo /api",
     "urlLabel": "URL del CMS",
-    "urlPlaceholder": "https://signage.internal"
+    "urlPlaceholder": "https://signage.internal",
+    "inventoryHeader": "Colecciones del CMS reflejadas",
+    "inventoryCollectionsLabel": "Colecciones que se reflejarán en inventory.*",
+    "inventoryCollectionsHelp": "Cada colección seleccionada obtiene un estado inventory.<nombre>Json y un recuento. Las desactivadas por defecto son grandes (biblioteca multimedia, módulos de widgets) o contienen datos personales (usuarios, grupos de usuarios, sesiones activas). Las no seleccionadas siguen siendo accesibles mediante sendTo(\"xibo.0\", \"api\", { method, path })."
 }

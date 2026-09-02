@@ -26,5 +26,8 @@
     "statusPollIntervalLabel": "Оновлення статусу (мс)",
     "urlHelp": "Корінь CMS без суфікса /api",
     "urlLabel": "URL CMS",
-    "urlPlaceholder": "https://signage.internal"
+    "urlPlaceholder": "https://signage.internal",
+    "inventoryHeader": "Дзеркальні колекції CMS",
+    "inventoryCollectionsLabel": "Колекції для дзеркалювання в inventory.*",
+    "inventoryCollectionsHelp": "Кожна вибрана колекція отримує стан inventory.<назва>Json і лічильник. Вимкнені за замовчуванням є або великими (медіатека, модулі віджетів), або містять персональні дані (користувачі, групи користувачів, активні сеанси). Невибрані колекції залишаються доступними через sendTo(\"xibo.0\", \"api\", { method, path })."
 }

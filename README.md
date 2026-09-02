@@ -6,14 +6,55 @@ Built for driving LED walls from a StreamDeck: a button writes a layout id to a
 display group, the display changes immediately, and a revert button hands it back
 to the schedule.
 
+[Xibo](https://xibosignage.com/) is an open-source digital signage platform, of
+which this drives the CMS.
+
 ## What it does
 
-- **Inventory** — display groups, displays and layouts, refreshed on a timer
+- **Inventory** — 23 CMS collections mirrored on a timer, from display groups
+  and layouts to datasets, sync groups and player versions
 - **Control** — change layout, overlay layout, revert to schedule, collect now
 - **Status** — how many displays in a group are online, and what they report playing
+- **Anything else** — any of the CMS's 263 API operations, via `sendTo`
 
 Layouts are the unit of control. Media in the CMS library cannot be scheduled on
 its own; a layout is what a display can be told to show.
+
+## Calling the rest of the API
+
+The state tree covers what a venue drives day to day. The CMS exposes far more —
+dataset editing, widget and region layout, user administration — and modelling
+all of it as states would be thousands of states for jobs better done in the
+Xibo UI. So anything not modelled is still one call away:
+
+```javascript
+// Returns the response body.
+const res = await sendToAsync("xibo.0", "api", {
+    method: "GET", path: "/layout", params: { retired: 0 },
+});
+if (res.ok) log(`${res.result.length} live layouts`);
+
+// Arrays become the repeated key[] form the schedule endpoints require.
+await sendToAsync("xibo.0", "api", {
+    method: "GET", path: "/schedule", params: { displayGroupIds: [3, 4] },
+});
+```
+
+`commands.api` does the same from a state — write
+`{"method":"POST","path":"/tag","params":{"name":"match-day"}}` — but a state
+cannot hand a response back to whoever wrote it, so the body lands in
+`commands.lastResult`. Prefer `sendTo` when you need the answer.
+
+Paths are resolved and checked to stay under `/api`, and methods are limited to
+GET, POST, PUT and DELETE. Beyond that the passthrough is as powerful as the
+credentials it is given — a `DELETE /layout/{id}` really does delete a layout —
+so scope the CMS application accordingly.
+
+### One thing the CMS gets wrong
+
+`GET /campaign` returns an empty array on a CMS holding campaigns, because
+every layout's own single-layout campaign is excluded by the default filter.
+Ask for `?isLayoutSpecific=-1` — the adapter's own `campaigns` collection does.
 
 ## Configuration
 
@@ -137,6 +178,49 @@ the folder tree and filters against it.
 -->
 ### __WORK IN PROGRESS__
 
+**Behaviour changes — read these before upgrading.**
+
+- **A `duration` that is not a number is now refused instead of ignored.**
+  `Number("30s")` is `NaN` and `Number("")` is `0`, and both used to mean "no
+  duration", so `{"layoutId":41,"duration":"30s"}` booked an *indefinite* play
+  and still recorded `ok:true`. It now throws, `commands.lastResult` records
+  `ok:false`, and the error names the field. If a deck button or script sends a
+  duration with units in it, fix the payload — that button was not doing what
+  it appeared to do before.
+- **`info.connection` means something slightly different.** It now stays
+  `false` until a status poll has actually succeeded, and needs two consecutive
+  status-poll failures to go `false` again. A single timed-out request no longer
+  reports a disconnection, and a failing inventory refresh no longer does
+  either — that goes to `info.lastError` and the log instead. Watchdogs gating
+  on this state will see a slightly longer window after a restart, and far
+  fewer spurious disconnects.
+- **Scheduled layouts survive a DST change.** The CMS's UTC offset was read
+  once and kept for the life of the instance, so an adapter running since
+  summer booked every event an hour out after the October change — the wall
+  changing an hour late, or a timed layout never appearing at all, with `ok`
+  reported both times. It is now re-read hourly.
+
+**New**
+
+- **`inventory.*` now mirrors 23 CMS collections**, not three: campaigns,
+  playlists, datasets, templates, tags, resolutions, display profiles, day
+  parts, folders, CMS commands, sync groups, menu boards, notifications and
+  player versions are on by default, and the media library, widget modules,
+  venues, users, user groups and sessions can be turned on. Pick them under
+  "Mirrored CMS collections". Unticking one deletes its states rather than
+  leaving a stale value behind.
+- **Any CMS operation can now be called**, for the parts of the platform the
+  state tree does not model:
+
+  ```javascript
+  const layouts = await sendToAsync("xibo.0", "api", {
+      method: "GET", path: "/layout", params: { retired: 0 },
+  });
+  ```
+
+  `commands.api` does the same from a state, with the response in
+  `commands.lastResult`. Paths are held to `/api` and methods to
+  GET/POST/PUT/DELETE.
 - Release tooling: `npm run release` now drives the version bump, so
   `package.json`, `io-package.json` and this changelog cannot drift apart.
 - Integration test that starts the adapter under a real js-controller.

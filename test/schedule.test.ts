@@ -29,6 +29,7 @@ const CONFIG: XiboConfig = {
     defaultChangeDuration: 0,
     layoutPlayMode: "schedule",
     schedulePriority: 10,
+    inventoryCollections: ["displayGroups", "displays", "layouts"],
 };
 
 const SILENT = { debug: () => undefined, info: () => undefined, warn: () => undefined, error: () => undefined };

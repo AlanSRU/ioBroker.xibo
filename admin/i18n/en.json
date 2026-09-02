@@ -26,5 +26,8 @@
     "layoutPlayModeSchedule": "Schedule a priority event, then collect (works everywhere)",
     "layoutPlayModeAction": "XMR changeLayout action (official Xibo player only)",
     "schedulePriorityLabel": "Schedule priority",
-    "schedulePriorityHelp": "Priority of the events this adapter creates, and the marker for the ones it owns and replaces. Must be higher than any other event it should override, and used by nothing else."
+    "schedulePriorityHelp": "Priority of the events this adapter creates, and the marker for the ones it owns and replaces. Must be higher than any other event it should override, and used by nothing else.",
+    "inventoryHeader": "Mirrored CMS collections",
+    "inventoryCollectionsLabel": "Collections to mirror into inventory.*",
+    "inventoryCollectionsHelp": "Each selected collection gets an inventory.<name>Json state and a count. The ones off by default are either large (the media library, widget modules) or hold personal data (users, user groups, active sessions). Anything left unselected is still reachable with sendTo(\"xibo.0\", \"api\", { method, path })."
 }

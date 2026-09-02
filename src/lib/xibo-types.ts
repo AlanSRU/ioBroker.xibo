@@ -51,6 +51,8 @@ export interface XiboConfig {
      * must be above anything it needs to override.
      */
     schedulePriority: number;
+    /** Keys of the CMS collections mirrored into `inventory.*`. */
+    inventoryCollections: string[];
 }
 
 export interface AdapterLogger {
@@ -142,7 +144,7 @@ export interface StateDefinition {
 
 export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
     { id: "info", name: "Connection and diagnostics" },
-    { id: "inventory", name: "Displays, display groups and layouts" },
+    { id: "inventory", name: "Mirrored CMS collections" },
     { id: "commands", name: "Commands" },
     { id: "displayGroups", name: "Per display group" },
 ];
@@ -153,12 +155,8 @@ export const STATE_DEFINITIONS: StateDefinition[] = [
     { id: "info.lastSync", name: "Last successful inventory refresh", type: "string", role: "text", read: true, write: false, def: "" },
     { id: "info.cmsUrl", name: "CMS URL", type: "string", role: "text", read: true, write: false, def: "" },
 
-    { id: "inventory.displayGroupsJson", name: "Display groups as JSON", type: "string", role: "json", read: true, write: false, def: "[]" },
-    { id: "inventory.displaysJson", name: "Displays as JSON", type: "string", role: "json", read: true, write: false, def: "[]" },
-    { id: "inventory.layoutsJson", name: "Layouts as JSON", type: "string", role: "json", read: true, write: false, def: "[]" },
-    { id: "inventory.displayGroupCount", name: "Display group count", type: "number", role: "value", read: true, write: false, def: 0 },
-    { id: "inventory.displayCount", name: "Display count", type: "number", role: "value", read: true, write: false, def: 0 },
-    { id: "inventory.layoutCount", name: "Layout count", type: "number", role: "value", read: true, write: false, def: 0 },
+    // The inventory states are generated from the selected collections; see
+    // {@link inventoryStateDefinitions}.
 
     // Written un-acked by callers; the adapter executes and clears them, so an
     // identical follow-up request still triggers.
@@ -168,7 +166,50 @@ export const STATE_DEFINITIONS: StateDefinition[] = [
     { id: "commands.revertToSchedule", name: "Return a display group to its schedule: {displayGroupId}", type: "string", role: "json", read: false, write: true, def: "" },
     { id: "commands.collectNow", name: "Ask a display group to collect now: {displayGroupId}", type: "string", role: "json", read: false, write: true, def: "" },
     { id: "commands.lastResult", name: "Result of the last command", type: "string", role: "json", read: true, write: false, def: "" },
+    /**
+     * The escape hatch, for the operations this adapter does not model.
+     *
+     * A state cannot hand a response body back to its caller, so the result
+     * lands in `commands.lastResult`. A script that needs the body should use
+     * `sendTo("xibo.0", "api", { method, path, params })` instead, which
+     * returns it directly.
+     */
+    { id: "commands.api", name: "Call any CMS operation: {method, path, params?}", type: "string", role: "json", read: false, write: true, def: "" },
 ];
+
+/**
+ * The `inventory.*` states for a set of mirrored collections.
+ *
+ * Generated rather than listed, so a collection cannot be added to the
+ * catalogue and then quietly never get its states created. The ids come from
+ * `collectionStateIds`, which preserves the ones 0.2.0 already published.
+ */
+export function inventoryStateDefinitions(
+    collections: Array<{ key: string; countKey?: string; name: string }>,
+): StateDefinition[] {
+    const definitions: StateDefinition[] = [];
+    for (const c of collections) {
+        definitions.push({
+            id: `inventory.${c.key}Json`,
+            name: `${c.name} as JSON`,
+            type: "string",
+            role: "json",
+            read: true,
+            write: false,
+            def: "[]",
+        });
+        definitions.push({
+            id: `inventory.${c.countKey ?? `${c.key}Count`}`,
+            name: `${c.name} count`,
+            type: "number",
+            role: "value",
+            read: true,
+            write: false,
+            def: 0,
+        });
+    }
+    return definitions;
+}
 
 /** Per display group, under `displayGroups.<sanitised name>`. */
 export const DISPLAY_GROUP_STATE_SUFFIXES: StateDefinition[] = [

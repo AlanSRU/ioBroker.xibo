@@ -94,7 +94,8 @@
       "license": "MIT"
     },
     "tier": 3,
-    "nogit": true
+    "nogit": true,
+    "messagebox": true
   },
   "native": {
     "url": "",
@@ -106,7 +107,26 @@
     "layoutFolder": "",
     "defaultChangeDuration": 0,
     "layoutPlayMode": "schedule",
-    "schedulePriority": 10
+    "schedulePriority": 10,
+    "inventoryCollections": [
+      "displayGroups",
+      "displays",
+      "layouts",
+      "campaigns",
+      "playlists",
+      "datasets",
+      "templates",
+      "tags",
+      "resolutions",
+      "displayProfiles",
+      "dayParts",
+      "folders",
+      "cmsCommands",
+      "syncGroups",
+      "menuBoards",
+      "notifications",
+      "playerVersions"
+    ]
   },
   "objects": [],
   "instanceObjects": [

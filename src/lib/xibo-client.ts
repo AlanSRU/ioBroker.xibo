@@ -16,6 +16,9 @@ const EVENT_TYPE_LAYOUT = 1;
  */
 const CMS_OFFSET_TTL_MS = 3_600_000;
 
+/** Methods the generic passthrough will send. See {@link XiboClient.call}. */
+const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "DELETE"]);
+
 interface TokenResponse {
     access_token: string;
     expires_in: number;
@@ -109,7 +112,95 @@ export class XiboClient {
         return { headers: { "Content-Type": "application/x-www-form-urlencoded" }, body };
     }
 
+    // --------------------------------------------------------- generic call
+
+    /**
+     * Any CMS operation, by method and path.
+     *
+     * The CMS exposes 263 operations and this adapter models the few dozen a
+     * venue actually drives. Hand-modelling the rest — dataset column editing,
+     * widget elements, region positioning, user administration — would be
+     * thousands of lines of state tree for things better done in the Xibo UI,
+     * but "not modelled" should not mean "unreachable". This is the escape
+     * hatch, so a script can do anything the CMS can.
+     *
+     * Values are sent as query parameters for GET and DELETE and as a form
+     * body for POST and PUT, which is what the CMS accepts. An array becomes
+     * repeated `key[]` entries — the encoding the schedule endpoints require
+     * and the one thing about this API that is easy to get silently wrong.
+     */
+    async call(method: string, path: string, params: Record<string, unknown> = {}): Promise<unknown> {
+        const verb = method.toUpperCase();
+        if (!ALLOWED_METHODS.has(verb)) {
+            throw new Error(`method must be one of ${[...ALLOWED_METHODS].join(", ")}, got "${method}"`);
+        }
+        if (!path.startsWith("/")) {
+            throw new Error(`path must start with "/" and be relative to /api, got "${path}"`);
+        }
+
+        const query = new URLSearchParams();
+        for (const [key, value] of Object.entries(params)) {
+            if (value === undefined || value === null) continue;
+            if (Array.isArray(value)) {
+                for (const item of value) query.append(`${key}[]`, String(item));
+            } else {
+                query.append(key, String(value));
+            }
+        }
+
+        if (verb === "GET" || verb === "DELETE") {
+            const joined = query.toString();
+            const separator = path.includes("?") ? "&" : "?";
+            const withQuery = `${path}${joined ? separator + joined : ""}`;
+            this.assertUnderApi(withQuery);
+            return this.request(withQuery, { method: verb });
+        }
+        this.assertUnderApi(path);
+        return this.request(path, {
+            method: verb,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: query,
+        });
+    }
+
+    /**
+     * Refuses a path that does not resolve to somewhere under `/api`.
+     *
+     * The check is on the **resolved** URL, not the string, because a
+     * blacklist cannot win this one: `..` is only the most obvious spelling.
+     * The WHATWG parser — which is what `fetch` itself uses to resolve this
+     * URL — decodes `%2e%2e`, `%2E%2E` and `.%2e` to a double-dot segment
+     * before normalising, so `/%2e%2e/%2e%2e/install/index.php` climbs out of
+     * `/api` and reaches the CMS's installer with the bearer token attached.
+     * A string guard looking for ".." sees nothing wrong with any of them.
+     *
+     * Resolving it the same way `fetch` will and then checking where it landed
+     * is the only form of this check that cannot be spelled around.
+     */
+    private assertUnderApi(path: string): void {
+        const prefix = new URL(`${this.base}/api/`);
+        let resolved: URL;
+        try {
+            resolved = new URL(`${this.base}/api${path}`);
+        } catch {
+            throw new Error(`path is not a usable URL path: "${path}"`);
+        }
+        const underApi = resolved.origin === prefix.origin
+            && (resolved.pathname === prefix.pathname.replace(/\/$/, "")
+                || resolved.pathname.startsWith(prefix.pathname));
+        if (!underApi) {
+            throw new Error(
+                `path must stay under /api, but "${path}" resolves to ${resolved.pathname} — refused`,
+            );
+        }
+    }
+
     // ------------------------------------------------------------- inventory
+
+    /** One mirrored collection, by the path its definition carries. */
+    async listCollection(path: string): Promise<unknown> {
+        return this.request(path);
+    }
 
     async listDisplayGroups(): Promise<XiboDisplayGroup[]> {
         return (await this.request("/displaygroup")) as XiboDisplayGroup[];

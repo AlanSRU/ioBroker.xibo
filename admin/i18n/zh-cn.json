@@ -26,5 +26,8 @@
     "statusPollIntervalLabel": "状态刷新（毫秒）",
     "urlHelp": "CMS 根目录，不带 /api 后缀",
     "urlLabel": "内容管理系统网址",
-    "urlPlaceholder": "https://signage.internal"
+    "urlPlaceholder": "https://signage.internal",
+    "inventoryHeader": "镜像的 CMS 集合",
+    "inventoryCollectionsLabel": "要镜像到 inventory.* 的集合",
+    "inventoryCollectionsHelp": "每个选定的集合都会获得一个 inventory.<名称>Json 状态和一个计数。默认关闭的集合要么很大（媒体库、小部件模块），要么包含个人数据（用户、用户组、活动会话）。未选择的集合仍可通过 sendTo(\"xibo.0\", \"api\", { method, path }) 访问。"
 }

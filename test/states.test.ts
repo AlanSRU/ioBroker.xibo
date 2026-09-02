@@ -1,7 +1,9 @@
 import { expect } from "chai";
 import {
-    DISPLAY_GROUP_STATE_SUFFIXES, STATE_DEFINITIONS, CHANNEL_DEFINITIONS, sanitizeId,
+    DISPLAY_GROUP_STATE_SUFFIXES, STATE_DEFINITIONS, CHANNEL_DEFINITIONS, inventoryStateDefinitions,
+    sanitizeId,
 } from "../src/lib/xibo-types";
+import { COLLECTIONS } from "../src/lib/xibo-collections";
 
 /**
  * The object tree is built in code, so nothing else ever sees these
@@ -9,7 +11,11 @@ import {
  * io-package.json. Pinning them here is the only check they get.
  */
 describe("state definitions", () => {
-    const all = [...STATE_DEFINITIONS, ...DISPLAY_GROUP_STATE_SUFFIXES];
+    const all = [
+        ...STATE_DEFINITIONS,
+        ...DISPLAY_GROUP_STATE_SUFFIXES,
+        ...inventoryStateDefinitions(COLLECTIONS),
+    ];
 
     it("gives every state a default, so a fresh object is never undefined", () => {
         for (const state of all) {
@@ -38,7 +44,7 @@ describe("state definitions", () => {
         const writable = all.filter((s) => s.write).map((s) => s.id);
         // Every writable state must have a handler in main.ts; these are they.
         expect(writable.sort()).to.deep.equal([
-            "commands.changeLayout", "commands.collectNow", "commands.overlayLayout",
+            "commands.api", "commands.changeLayout", "commands.collectNow", "commands.overlayLayout",
             "commands.refresh", "commands.revertToSchedule",
             "playLayoutId", "revert",
         ].sort());
@@ -46,7 +52,11 @@ describe("state definitions", () => {
 
     it("declares a parent channel for every dotted state id", () => {
         const channels = new Set(CHANNEL_DEFINITIONS.map((c) => c.id));
-        for (const state of STATE_DEFINITIONS) {
+        // The inventory states are generated from the collection catalogue, so
+        // a new collection could otherwise create a state under a channel that
+        // does not exist — which the runtime tolerates silently.
+        const audited = [...STATE_DEFINITIONS, ...inventoryStateDefinitions(COLLECTIONS)];
+        for (const state of audited) {
             const segments = state.id.split(".");
             for (let i = 1; i < segments.length; i++) {
                 const parent = segments.slice(0, i).join(".");

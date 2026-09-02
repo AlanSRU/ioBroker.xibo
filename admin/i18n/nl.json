@@ -26,5 +26,8 @@
     "statusPollIntervalLabel": "Statusvernieuwing (ms)",
     "urlHelp": "De CMS-hoofdmap, zonder het achtervoegsel /api",
     "urlLabel": "CMS-URL",
-    "urlPlaceholder": "https://signage.internal"
+    "urlPlaceholder": "https://signage.internal",
+    "inventoryHeader": "Gespiegelde CMS-collecties",
+    "inventoryCollectionsLabel": "Collecties om te spiegelen naar inventory.*",
+    "inventoryCollectionsHelp": "Elke geselecteerde collectie krijgt een inventory.<naam>Json-status en een aantal. De standaard uitgeschakelde zijn groot (mediabibliotheek, widgetmodules) of bevatten persoonsgegevens (gebruikers, gebruikersgroepen, actieve sessies). Niet-geselecteerde collecties blijven bereikbaar via sendTo(\"xibo.0\", \"api\", { method, path })."
 }

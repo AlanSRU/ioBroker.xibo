@@ -2,73 +2,234 @@
     "i18n": true,
     "type": "panel",
     "items": {
-        "_cmsHeader": { "type": "header", "text": "cmsHeader", "size": 2 },
+        "_cmsHeader": {
+            "type": "header",
+            "text": "cmsHeader",
+            "size": 2
+        },
         "url": {
             "type": "text",
             "label": "urlLabel",
             "help": "urlHelp",
-            "xs": 12, "sm": 12, "md": 6, "lg": 6, "xl": 6,
+            "xs": 12,
+            "sm": 12,
+            "md": 6,
+            "lg": 6,
+            "xl": 6,
             "placeholder": "urlPlaceholder"
         },
         "clientId": {
             "type": "text",
             "label": "clientIdLabel",
             "help": "clientIdHelp",
-            "xs": 12, "sm": 12, "md": 6, "lg": 6, "xl": 6
+            "xs": 12,
+            "sm": 12,
+            "md": 6,
+            "lg": 6,
+            "xl": 6
         },
         "clientSecret": {
             "type": "password",
             "label": "clientSecretLabel",
             "help": "clientSecretHelp",
-            "xs": 12, "sm": 12, "md": 6, "lg": 6, "xl": 6,
+            "xs": 12,
+            "sm": 12,
+            "md": 6,
+            "lg": 6,
+            "xl": 6,
             "repeat": false,
             "visible": true
         },
-
-        "_scopeHeader": { "type": "header", "text": "scopeHeader", "size": 2 },
+        "_scopeHeader": {
+            "type": "header",
+            "text": "scopeHeader",
+            "size": 2
+        },
         "layoutFolder": {
             "type": "text",
             "label": "layoutFolderLabel",
             "help": "layoutFolderHelp",
-            "xs": 12, "sm": 12, "md": 6, "lg": 6, "xl": 6,
+            "xs": 12,
+            "sm": 12,
+            "md": 6,
+            "lg": 6,
+            "xl": 6,
             "placeholder": "layoutFolderPlaceholder"
         },
         "defaultChangeDuration": {
             "type": "number",
             "label": "defaultChangeDurationLabel",
             "help": "defaultChangeDurationHelp",
-            "xs": 12, "sm": 12, "md": 6, "lg": 6, "xl": 6,
+            "xs": 12,
+            "sm": 12,
+            "md": 6,
+            "lg": 6,
+            "xl": 6,
             "min": 0,
             "max": 86400
         },
-
-        "_playbackHeader": { "type": "header", "text": "playbackHeader", "size": 2 },
+        "_inventoryHeader": {
+            "type": "header",
+            "text": "inventoryHeader",
+            "size": 2
+        },
+        "inventoryCollections": {
+            "type": "select",
+            "multiple": true,
+            "label": "inventoryCollectionsLabel",
+            "help": "inventoryCollectionsHelp",
+            "options": [
+                {
+                    "label": "Display groups",
+                    "value": "displayGroups"
+                },
+                {
+                    "label": "Displays",
+                    "value": "displays"
+                },
+                {
+                    "label": "Layouts",
+                    "value": "layouts"
+                },
+                {
+                    "label": "Campaigns",
+                    "value": "campaigns"
+                },
+                {
+                    "label": "Playlists",
+                    "value": "playlists"
+                },
+                {
+                    "label": "Datasets",
+                    "value": "datasets"
+                },
+                {
+                    "label": "Layout templates",
+                    "value": "templates"
+                },
+                {
+                    "label": "Tags",
+                    "value": "tags"
+                },
+                {
+                    "label": "Resolutions",
+                    "value": "resolutions"
+                },
+                {
+                    "label": "Display profiles",
+                    "value": "displayProfiles"
+                },
+                {
+                    "label": "Day parts",
+                    "value": "dayParts"
+                },
+                {
+                    "label": "Folder tree",
+                    "value": "folders"
+                },
+                {
+                    "label": "CMS commands",
+                    "value": "cmsCommands"
+                },
+                {
+                    "label": "Sync groups",
+                    "value": "syncGroups"
+                },
+                {
+                    "label": "Menu boards",
+                    "value": "menuBoards"
+                },
+                {
+                    "label": "Notifications",
+                    "value": "notifications"
+                },
+                {
+                    "label": "Player software versions",
+                    "value": "playerVersions"
+                },
+                {
+                    "label": "Media library (off by default)",
+                    "value": "library"
+                },
+                {
+                    "label": "Widget modules (off by default)",
+                    "value": "modules"
+                },
+                {
+                    "label": "Display venues (off by default)",
+                    "value": "venues"
+                },
+                {
+                    "label": "CMS users (off by default)",
+                    "value": "users"
+                },
+                {
+                    "label": "CMS user groups (off by default)",
+                    "value": "userGroups"
+                },
+                {
+                    "label": "Active CMS sessions (off by default)",
+                    "value": "sessions"
+                }
+            ],
+            "xs": 12,
+            "sm": 12,
+            "md": 12,
+            "lg": 12,
+            "xl": 12
+        },
+        "_playbackHeader": {
+            "type": "header",
+            "text": "playbackHeader",
+            "size": 2
+        },
         "layoutPlayMode": {
             "type": "select",
             "label": "layoutPlayModeLabel",
             "help": "layoutPlayModeHelp",
             "options": [
-                { "label": "layoutPlayModeSchedule", "value": "schedule" },
-                { "label": "layoutPlayModeAction", "value": "action" }
+                {
+                    "label": "layoutPlayModeSchedule",
+                    "value": "schedule"
+                },
+                {
+                    "label": "layoutPlayModeAction",
+                    "value": "action"
+                }
             ],
-            "xs": 12, "sm": 12, "md": 6, "lg": 6, "xl": 6
+            "xs": 12,
+            "sm": 12,
+            "md": 6,
+            "lg": 6,
+            "xl": 6
         },
         "schedulePriority": {
             "type": "number",
             "label": "schedulePriorityLabel",
             "help": "schedulePriorityHelp",
-            "xs": 12, "sm": 12, "md": 6, "lg": 6, "xl": 6,
+            "xs": 12,
+            "sm": 12,
+            "md": 6,
+            "lg": 6,
+            "xl": 6,
             "min": 1,
             "max": 1000,
             "hidden": "data.layoutPlayMode === 'action'"
         },
-
-        "_pollHeader": { "type": "header", "text": "pollHeader", "size": 2 },
+        "_pollHeader": {
+            "type": "header",
+            "text": "pollHeader",
+            "size": 2
+        },
         "inventoryPollInterval": {
             "type": "number",
             "label": "inventoryPollIntervalLabel",
             "help": "inventoryPollIntervalHelp",
-            "xs": 12, "sm": 12, "md": 4, "lg": 4, "xl": 4,
+            "xs": 12,
+            "sm": 12,
+            "md": 4,
+            "lg": 4,
+            "xl": 4,
             "min": 30000,
             "max": 86400000
         },
@@ -76,7 +237,11 @@
             "type": "number",
             "label": "statusPollIntervalLabel",
             "help": "statusPollIntervalHelp",
-            "xs": 12, "sm": 12, "md": 4, "lg": 4, "xl": 4,
+            "xs": 12,
+            "sm": 12,
+            "md": 4,
+            "lg": 4,
+            "xl": 4,
             "min": 5000,
             "max": 3600000
         },
@@ -84,7 +249,11 @@
             "type": "number",
             "label": "requestTimeoutLabel",
             "help": "requestTimeoutHelp",
-            "xs": 12, "sm": 12, "md": 4, "lg": 4, "xl": 4,
+            "xs": 12,
+            "sm": 12,
+            "md": 4,
+            "lg": 4,
+            "xl": 4,
             "min": 2000,
             "max": 120000
         }

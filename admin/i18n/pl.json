@@ -26,5 +26,8 @@
     "statusPollIntervalLabel": "Odświeżanie stanu (ms)",
     "urlHelp": "Katalog główny CMS, bez przyrostka /api",
     "urlLabel": "Adres URL systemu CMS",
-    "urlPlaceholder": "https://signage.internal"
+    "urlPlaceholder": "https://signage.internal",
+    "inventoryHeader": "Odwzorowane kolekcje CMS",
+    "inventoryCollectionsLabel": "Kolekcje do odwzorowania w inventory.*",
+    "inventoryCollectionsHelp": "Każda wybrana kolekcja otrzymuje stan inventory.<nazwa>Json oraz licznik. Wyłączone domyślnie są duże (biblioteka multimediów, moduły widżetów) albo zawierają dane osobowe (użytkownicy, grupy użytkowników, aktywne sesje). Niewybrane kolekcje nadal są dostępne przez sendTo(\"xibo.0\", \"api\", { method, path })."
 }

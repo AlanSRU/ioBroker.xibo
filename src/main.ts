@@ -1,9 +1,12 @@
 import * as utils from "@iobroker/adapter-core";
 import { XiboClient } from "./lib/xibo-client";
 import {
-    CHANNEL_DEFINITIONS, DISPLAY_GROUP_STATE_SUFFIXES, evaluateHealth, parseDurationSeconds,
-    sanitizeId, STATE_DEFINITIONS, XiboConfig, XiboDisplayGroup,
+    CHANNEL_DEFINITIONS, DISPLAY_GROUP_STATE_SUFFIXES, evaluateHealth, inventoryStateDefinitions,
+    parseDurationSeconds, sanitizeId, STATE_DEFINITIONS, StateDefinition, XiboConfig, XiboDisplayGroup,
 } from "./lib/xibo-types";
+import {
+    COLLECTIONS, CollectionDefinition, collectionRows, collectionStateIds, selectedCollections,
+} from "./lib/xibo-collections";
 
 /** Keeps a configured number inside sane bounds, falling back when unusable. */
 function clamp(value: unknown, min: number, max: number, fallback: number): number {
@@ -48,6 +51,7 @@ class XiboAdapter extends utils.Adapter {
         super({ ...options, name: "xibo" });
         this.on("ready", this.onReady.bind(this));
         this.on("stateChange", this.onStateChange.bind(this));
+        this.on("message", this.onMessage.bind(this));
         this.on("unload", this.onUnload.bind(this));
     }
 
@@ -67,6 +71,12 @@ class XiboAdapter extends utils.Adapter {
             requestTimeout: clamp(c.requestTimeout, 2_000, 120_000, 30_000),
             layoutFolder: (c.layoutFolder ?? "").trim(),
             defaultChangeDuration: Math.max(0, Number(c.defaultChangeDuration) || 0),
+            // An unset or empty selection means the defaults, not nothing: an
+            // instance upgrading from 0.2.0 has no such setting, and mirroring
+            // nothing would empty the three states its scripts already read.
+            inventoryCollections: selectedCollections(
+                (this.config as unknown as { inventoryCollections?: unknown }).inventoryCollections,
+            ).map((collection) => collection.key),
             // Defaults to `schedule` because it is the mode that works on any
             // player: a schedule is honoured universally, whereas the XMR
             // action is silently ignored by players that do not implement it.
@@ -156,7 +166,9 @@ class XiboAdapter extends utils.Adapter {
             });
         }
 
-        for (const state of STATE_DEFINITIONS) {
+        const mirrored = this.mirroredCollections();
+        const states: StateDefinition[] = [...STATE_DEFINITIONS, ...inventoryStateDefinitions(mirrored)];
+        for (const state of states) {
             await this.setObjectNotExistsAsync(state.id, {
                 type: "state",
                 common: {
@@ -169,6 +181,33 @@ class XiboAdapter extends utils.Adapter {
                 },
                 native: {},
             });
+        }
+
+        await this.pruneDeselectedCollections(mirrored);
+    }
+
+    /** The collections this instance is configured to mirror. */
+    private mirroredCollections(): CollectionDefinition[] {
+        return selectedCollections(this.settings.inventoryCollections);
+    }
+
+    /**
+     * Removes the inventory states of collections no longer selected.
+     *
+     * Without this, unticking a collection leaves its last value behind for
+     * ever — a stale count and a stale JSON blob that look live, with nothing
+     * to say they stopped being updated. Only states this adapter generates
+     * are considered, so nothing outside `inventory.` is ever touched.
+     */
+    private async pruneDeselectedCollections(mirrored: CollectionDefinition[]): Promise<void> {
+        const keep = new Set(mirrored.flatMap((c) => Object.values(collectionStateIds(c))));
+        for (const collection of COLLECTIONS) {
+            for (const id of Object.values(collectionStateIds(collection))) {
+                if (keep.has(id)) continue;
+                if (!(await this.objectExists(id))) continue;
+                await this.delObjectAsync(id);
+                this.log.debug(`Removed ${id}: its collection is no longer mirrored`);
+            }
         }
     }
 
@@ -284,12 +323,19 @@ class XiboAdapter extends utils.Adapter {
             }
             if (this.unloaded) return false;
 
-            await this.setState("inventory.displayGroupsJson", { val: JSON.stringify(pickable), ack: true });
-            await this.setState("inventory.displaysJson", { val: JSON.stringify(displays), ack: true });
-            await this.setState("inventory.layoutsJson", { val: JSON.stringify(layouts), ack: true });
-            await this.setState("inventory.displayGroupCount", { val: pickable.length, ack: true });
-            await this.setState("inventory.displayCount", { val: displays.length, ack: true });
-            await this.setState("inventory.layoutCount", { val: layouts.length, ack: true });
+            // The three above are already in hand — and each was fetched in a
+            // way the generic path could not reproduce: display groups are
+            // filtered to the pickable ones, and layouts may be scoped to a
+            // folder subtree. Reusing them keeps the request count the same as
+            // 0.2.0 for anyone who mirrors only these three.
+            const prefetched = new Map<string, unknown[]>([
+                ["displayGroups", pickable],
+                ["displays", displays],
+                ["layouts", layouts],
+            ]);
+            await this.mirrorCollections(prefetched);
+            if (this.unloaded) return false;
+
             await this.setState("info.lastSync", { val: new Date().toISOString(), ack: true });
             this.inventoryError = null;
             await this.publishHealth();
@@ -302,6 +348,42 @@ class XiboAdapter extends utils.Adapter {
             this.inventoryError = (err as Error).message;
             await this.publishHealth();
             return false;
+        }
+    }
+
+    /**
+     * Writes `inventory.<key>Json` and its count for every mirrored collection.
+     *
+     * One failing collection is logged and skipped rather than failing the
+     * whole pass: a Xibo application is feature-scoped, so an estate that has
+     * never used menu boards can answer 403 there while everything else works,
+     * and losing the display and layout inventory over that would take the
+     * deck down.
+     */
+    private async mirrorCollections(prefetched: Map<string, unknown[]>): Promise<void> {
+        const client = this.client;
+        if (!client) return;
+
+        const failed: string[] = [];
+        for (const collection of this.mirroredCollections()) {
+            if (this.unloaded) return;
+            const ids = collectionStateIds(collection);
+            try {
+                const rows = prefetched.get(collection.key)
+                    ?? collectionRows(collection, await client.listCollection(collection.path));
+                if (this.unloaded) return;
+                await this.setState(ids.json, { val: JSON.stringify(rows), ack: true });
+                await this.setState(ids.count, { val: rows.length, ack: true });
+            } catch (err) {
+                failed.push(`${collection.key} (${(err as Error).message})`);
+            }
+        }
+
+        if (failed.length > 0) {
+            // Left as they were rather than zeroed: a collection that could not
+            // be read is not a collection that became empty, and writing 0
+            // would tell every script exactly the wrong thing.
+            this.log.warn(`Could not mirror ${failed.length} collection(s): ${failed.join("; ")}`);
         }
     }
 
@@ -344,6 +426,58 @@ class XiboAdapter extends utils.Adapter {
                 `Status refresh failed (${this.statusFailures} in a row): ${(err as Error).message}`,
             );
             await this.publishHealth();
+        }
+    }
+
+    // ------------------------------------------------------------ messages
+
+    /**
+     * `sendTo` entry point, for the operations this adapter does not model.
+     *
+     * The CMS exposes 263 operations; the state tree covers the few dozen a
+     * venue drives. This reaches the rest — and unlike `commands.api`, it
+     * hands the response body back to the caller, which a state cannot do.
+     *
+     *     const layouts = await sendToAsync("xibo.0", "api", {
+     *         method: "GET", path: "/layout", params: { retired: 0 },
+     *     });
+     *
+     * A caller that sent no callback gets no reply, so the result is logged
+     * instead of being dropped in silence.
+     */
+    private async onMessage(obj: ioBroker.Message): Promise<void> {
+        const reply = (payload: unknown): void => {
+            if (obj.callback) this.sendTo(obj.from, obj.command, payload, obj.callback);
+        };
+
+        if (obj.command !== "api") {
+            this.log.warn(`Unknown message command "${obj.command}"`);
+            reply({ ok: false, error: `Unknown command "${obj.command}". The only one is "api".` });
+            return;
+        }
+        if (!this.client) {
+            reply({ ok: false, error: "Not connected to a CMS — the instance is not configured." });
+            return;
+        }
+
+        const message = (typeof obj.message === "object" && obj.message !== null
+            ? obj.message
+            : {}) as { method?: unknown; path?: unknown; params?: unknown };
+
+        try {
+            const method = String(message.method ?? "GET");
+            const path = String(message.path ?? "");
+            const params = (typeof message.params === "object" && message.params !== null
+                ? message.params
+                : {}) as Record<string, unknown>;
+            const result = await this.client.call(method, path, params);
+            this.log.debug(`api ${method} ${path}`);
+            reply({ ok: true, result });
+        } catch (err) {
+            const error = (err as Error).message;
+            this.log.warn(`api call failed: ${error}`);
+            if (!obj.callback) this.log.warn("The caller sent no callback, so it will never see that error.");
+            reply({ ok: false, error });
         }
     }
 
@@ -445,6 +579,23 @@ class XiboAdapter extends utils.Adapter {
                 await this.client!.collectNow(this.requireNumber(payload, "displayGroupId"));
                 break;
 
+            case "api": {
+                // The response body goes to lastResult, since a state cannot
+                // hand anything back to whoever wrote it. sendTo can, and the
+                // state's own description points there.
+                const params = typeof payload.params === "object" && payload.params !== null
+                    ? (payload.params as Record<string, unknown>)
+                    : {};
+                const result = await this.client!.call(
+                    String(payload.method ?? "GET"),
+                    String(payload.path ?? ""),
+                    params,
+                );
+                await this.recordResult(command, payload, true, undefined, result);
+                await this.setState("commands.api", { val: "", ack: true });
+                return;
+            }
+
             default:
                 // lastResult is written by the adapter, so it lands here on its
                 // own un-acked writes; anything else is a caller's mistake.
@@ -521,9 +672,15 @@ class XiboAdapter extends utils.Adapter {
         this.log.debug(`revert: removed ${removed} scheduled layout(s) from display group ${displayGroupId}`);
     }
 
-    private async recordResult(command: string, payload: unknown, ok: boolean, error?: string): Promise<void> {
+    private async recordResult(
+        command: string,
+        payload: unknown,
+        ok: boolean,
+        error?: string,
+        result?: unknown,
+    ): Promise<void> {
         await this.setState("commands.lastResult", {
-            val: JSON.stringify({ ok, command, payload, error, ts: Date.now() }),
+            val: JSON.stringify({ ok, command, payload, error, result, ts: Date.now() }),
             ack: true,
         });
     }

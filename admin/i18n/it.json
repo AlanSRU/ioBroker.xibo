@@ -26,5 +26,8 @@
     "statusPollIntervalLabel": "Aggiornamento dello stato (ms)",
     "urlHelp": "La radice CMS, senza il suffisso /api",
     "urlLabel": "URL del CMS",
-    "urlPlaceholder": "https://signage.internal"
+    "urlPlaceholder": "https://signage.internal",
+    "inventoryHeader": "Raccolte del CMS replicate",
+    "inventoryCollectionsLabel": "Raccolte da replicare in inventory.*",
+    "inventoryCollectionsHelp": "Ogni raccolta selezionata ottiene uno stato inventory.<nome>Json e un conteggio. Quelle disattivate per impostazione predefinita sono grandi (libreria multimediale, moduli widget) o contengono dati personali (utenti, gruppi di utenti, sessioni attive). Le raccolte non selezionate restano raggiungibili con sendTo(\"xibo.0\", \"api\", { method, path })."
 }
