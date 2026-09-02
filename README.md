@@ -77,12 +77,33 @@ permissions do not constrain it — those govern people using the Xibo UI.
 
 ## State tree (`xibo.0.*`)
 
-### info / inventory
+### info
 
-- `info.connection` — CMS reachable and credentials valid
-- `info.lastError`, `info.lastSync`, `info.cmsUrl`
-- `inventory.{displayGroupsJson, displaysJson, layoutsJson}` — full lists as JSON
-- `inventory.{displayGroupCount, displayCount, layoutCount}`
+- `info.connection` — the CMS is reachable and the credentials work. Driven by
+  the status poll, and needs two consecutive failures before it goes false, so
+  a single timed-out request is not reported as a disconnection.
+- `info.lastError` — the outstanding error, whichever poll produced it
+- `info.lastSync`, `info.cmsUrl`
+
+### inventory
+
+One `inventory.<name>Json` state and one count per mirrored collection, chosen
+under **Mirrored CMS collections**. Seventeen are on by default:
+
+`displayGroups`, `displays`, `layouts`, `campaigns`, `playlists`, `datasets`,
+`templates`, `tags`, `resolutions`, `displayProfiles`, `dayParts`, `folders`,
+`cmsCommands`, `syncGroups`, `menuBoards`, `notifications`, `playerVersions`
+
+Six are available but off: `library` and `modules` are large, `venues` is a
+fixed lookup list, and `users`, `userGroups` and `sessions` hold personal data —
+mirroring those copies names, email addresses and who is signed in out of the
+CMS's access control into states any script can read.
+
+The first three keep the state ids they had in 0.2.0 (`displayGroupCount`, not
+`displayGroupsCount`), so an upgrade neither loses them nor orphans them.
+Unticking a collection deletes its states rather than leaving a stale value
+behind, and unticking everything mirrors nothing — display groups and layouts
+are still read, because the object tree needs them.
 
 ### Per display group
 
