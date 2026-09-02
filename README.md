@@ -214,6 +214,23 @@ the folder tree and filters against it.
   and InfluxDB settings on those states are left alone, and a display-group
   channel you have renamed keeps your name.
 
+- **A display group renamed in the CMS keeps its branch.** The branch id is
+  folded from the group name, so a rename used to produce a *second* branch on
+  the next restart while the old one stayed behind for ever, frozen at its last
+  counts and looking live — and a deck button still writing the old
+  `displayGroups.<old name>.playLayoutId` hit a state that existed and looked
+  healthy while nothing happened. Branches are now matched on the CMS id, so
+  the rename follows the name state and existing bindings keep working. A group
+  **deleted** from the CMS has its states zeroed once and stops updating, and
+  writing to it now fails visibly in `commands.lastResult` instead of only
+  logging a warning.
+- **A standing failure is logged once, not every poll.** An application scoped
+  without Layout access, or an estate that has never used menu boards, answers
+  403 for ever — which used to put the same line in the log 288 times a day and
+  re-raise admin's "errors in the log" notice every five minutes. The first
+  occurrence is logged, repeats go to debug, a *different* failure still
+  reports, and recovery is logged so the log says when it stopped.
+
 **New**
 
 - **`inventory.*` now mirrors 23 CMS collections**, not three: campaigns,

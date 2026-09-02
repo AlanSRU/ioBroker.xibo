@@ -341,3 +341,24 @@ export function describeWrite(local: string, value: unknown): { command: string;
     }
     return { command, payload: value };
 }
+
+/** What {@link conditionAction} decided to do about a repeating condition. */
+export type ConditionAction = "report" | "suppress" | "recovered" | "nothing";
+
+/**
+ * Whether a condition is worth logging again.
+ *
+ * Several failures here are permanent and expected — an application scoped
+ * without Layout access answers 403 on `/layout` for ever, and an estate that
+ * has never used menu boards answers 403 there for ever. Logged per poll that
+ * put the same line in the log 288 times a day and re-raised admin's "errors
+ * in the log" notice every five minutes, for a condition the adapter
+ * deliberately treats as survivable.
+ *
+ * A *changed* message still reports, so a second, different fault is never
+ * hidden behind the first.
+ */
+export function conditionAction(previous: string | undefined, message: string | null): ConditionAction {
+    if (message === null) return previous === undefined ? "nothing" : "recovered";
+    return previous === message ? "suppress" : "report";
+}

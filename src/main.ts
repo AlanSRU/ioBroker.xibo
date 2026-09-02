@@ -1,7 +1,7 @@
 import * as utils from "@iobroker/adapter-core";
 import { XiboClient } from "./lib/xibo-client";
 import {
-    CHANNEL_DEFINITIONS, describeWrite, DISPLAY_GROUP_STATE_SUFFIXES, evaluateHealth,
+    CHANNEL_DEFINITIONS, conditionAction, describeWrite, DISPLAY_GROUP_STATE_SUFFIXES, evaluateHealth,
     inventoryStateDefinitions, parseDurationSeconds, sanitizeId, STATE_DEFINITIONS, StateDefinition,
     XiboConfig, XiboDisplayGroup,
 } from "./lib/xibo-types";
@@ -57,6 +57,8 @@ class XiboAdapter extends utils.Adapter {
     /** Outstanding errors, owned one per poller so they cannot overwrite each other. */
     private statusError: string | null = null;
     private inventoryError: string | null = null;
+    /** Conditions already reported, so a standing failure is not logged every poll. */
+    private reportedConditions = new Map<string, string>();
     /** Display group id -> where it lives in the object tree. */
     private groupIndex = new Map<number, GroupIndexEntry>();
     private layoutFolderId: number | null = null;
@@ -104,6 +106,10 @@ class XiboAdapter extends utils.Adapter {
 
     private async onReady(): Promise<void> {
         await this.createStateStructure();
+        // Before any poll, so a group renamed in the CMS while the instance was
+        // down is recognised as the branch it already has rather than given a
+        // second one.
+        await this.seedGroupIndex();
 
         const config = this.settings;
         await this.setState("info.cmsUrl", { val: config.url, ack: true });
@@ -240,9 +246,50 @@ class XiboAdapter extends utils.Adapter {
         }
     }
 
+    /**
+     * Rebuilds the group index from the channels already in the object tree.
+     *
+     * The branch id is folded from the CMS name, so without this a group
+     * renamed in Xibo got a *second* branch on the next restart while the old
+     * one stayed behind for ever, frozen at its last counts and looking live —
+     * and a StreamDeck button still writing the old
+     * `displayGroups.<old name>.playLayoutId` found a state that existed and
+     * looked healthy while nothing happened. Matching on the CMS id kept in
+     * `native` means a rename keeps its branch, and the deck binding keeps
+     * working.
+     */
+    private async seedGroupIndex(): Promise<void> {
+        const channels = await this.getAdapterObjectsAsync();
+        for (const [fullId, object] of Object.entries(channels)) {
+            if (object?.type !== "channel") continue;
+            const objectId = fullId.slice(`${this.namespace}.`.length);
+            if (!objectId.startsWith("displayGroups.") || objectId.split(".").length !== 2) continue;
+            const displayGroupId = Number((object.native as { displayGroupId?: unknown })?.displayGroupId);
+            if (!Number.isFinite(displayGroupId) || this.groupIndex.has(displayGroupId)) continue;
+            this.groupIndex.set(displayGroupId, {
+                objectId,
+                displayGroupId,
+                name: typeof object.common?.name === "string" ? object.common.name : objectId,
+            });
+        }
+    }
+
     private async ensureGroupObject(group: XiboDisplayGroup): Promise<GroupIndexEntry> {
         const existing = this.groupIndex.get(group.displayGroupId);
-        if (existing) return existing;
+        if (existing) {
+            // A group renamed in the CMS keeps its branch — moving it would
+            // break every deck button bound to the old id — but the name it
+            // reports has to follow, or the tree asserts the old one for ever.
+            if (existing.name !== group.displayGroup) {
+                this.log.info(
+                    `Display group ${group.displayGroupId} was renamed to "${group.displayGroup}"; ` +
+                    `keeping its branch at ${existing.objectId} so existing bindings keep working.`,
+                );
+                existing.name = group.displayGroup;
+                await this.extendObjectAsync(existing.objectId, { common: { name: group.displayGroup } });
+            }
+            return existing;
+        }
 
         // Two groups can fold to the same id, so a collision falls back to the
         // CMS id rather than silently overwriting the first one's states.
@@ -281,6 +328,40 @@ class XiboAdapter extends utils.Adapter {
     }
 
     // ------------------------------------------------------------ polling
+
+    /**
+     * Reports a condition once, not on every poll.
+     *
+     * Several of the failures here are permanent and expected: a Xibo
+     * application scoped without Layout access answers 403 on `/layout` for
+     * ever, and an estate that has never used menu boards answers 403 there
+     * for ever. Logged per pass, that put the same line in the log 288 times a
+     * day and re-raised admin's "errors in the log" notice every five minutes,
+     * for a condition the adapter deliberately treats as survivable. The
+     * folder lookup already had this latch; the pollers did not.
+     *
+     * The first occurrence is logged at its real level, an unchanged repeat
+     * goes to debug, a *changed* message is reported afresh, and recovery is
+     * logged so the log says when it stopped rather than just going quiet.
+     */
+    private reportCondition(key: string, message: string | null, level: "warn" | "error" = "warn"): void {
+        const previous = this.reportedConditions.get(key);
+        switch (conditionAction(previous, message)) {
+            case "recovered":
+                this.reportedConditions.delete(key);
+                this.log.info(`${key}: recovered`);
+                return;
+            case "suppress":
+                this.log.debug(`${key} (still failing): ${message}`);
+                return;
+            case "report":
+                this.reportedConditions.set(key, message!);
+                this.log[level](message!);
+                return;
+            default:
+                return;
+        }
+    }
 
     /**
      * The single writer of `info.connection` and `info.lastError`.
@@ -355,6 +436,8 @@ class XiboAdapter extends utils.Adapter {
                 await this.ensureGroupObject(group);
             }
             if (this.unloaded) return false;
+            await this.retireMissingGroups(pickable);
+            if (this.unloaded) return false;
 
             // The three above are already in hand — and each was fetched in a
             // way the generic path could not reproduce: display groups are
@@ -371,11 +454,12 @@ class XiboAdapter extends utils.Adapter {
 
             await this.setState("info.lastSync", { val: new Date().toISOString(), ack: true });
             this.inventoryError = null;
+            this.reportCondition("inventory", null);
             await this.publishHealth();
             return true;
         } catch (err) {
             if (this.unloaded) return false;
-            this.log.error(`Inventory refresh failed: ${(err as Error).message}`);
+            this.reportCondition("inventory", `Inventory refresh failed: ${(err as Error).message}`, "error");
             // Recorded and logged, but not treated as a disconnection: the CMS
             // can be perfectly reachable and still refuse one collection.
             this.inventoryError = (err as Error).message;
@@ -393,6 +477,32 @@ class XiboAdapter extends utils.Adapter {
      * and losing the display and layout inventory over that would take the
      * deck down.
      */
+    /**
+     * Stops reporting on display groups the CMS no longer has.
+     *
+     * The branch is left in place — deleting it would take a deck button's
+     * state out from under it with no warning — but it is zeroed once and
+     * dropped from the index, so it reads as empty rather than sitting frozen
+     * at its last counts looking live. A write to it then fails visibly
+     * through `handleGroupWrite`, and if the group comes back the next refresh
+     * adopts the same branch again.
+     */
+    private async retireMissingGroups(present: XiboDisplayGroup[]): Promise<void> {
+        const live = new Set(present.map((g) => g.displayGroupId));
+        for (const [displayGroupId, entry] of [...this.groupIndex.entries()]) {
+            if (live.has(displayGroupId)) continue;
+            if (this.unloaded) return;
+            this.log.warn(
+                `Display group ${displayGroupId} ("${entry.name}") is no longer in the CMS. ` +
+                `Its states under ${entry.objectId} are zeroed and will stop updating.`,
+            );
+            await this.setState(`${entry.objectId}.displayCount`, { val: 0, ack: true });
+            await this.setState(`${entry.objectId}.displaysOnline`, { val: 0, ack: true });
+            await this.setState(`${entry.objectId}.currentLayout`, { val: "", ack: true });
+            this.groupIndex.delete(displayGroupId);
+        }
+    }
+
     private async mirrorCollections(prefetched: Map<string, unknown[]>): Promise<void> {
         const client = this.client;
         if (!client) return;
@@ -412,12 +522,13 @@ class XiboAdapter extends utils.Adapter {
             }
         }
 
-        if (failed.length > 0) {
-            // Left as they were rather than zeroed: a collection that could not
-            // be read is not a collection that became empty, and writing 0
-            // would tell every script exactly the wrong thing.
-            this.log.warn(`Could not mirror ${failed.length} collection(s): ${failed.join("; ")}`);
-        }
+        // Left as they were rather than zeroed: a collection that could not be
+        // read is not a collection that became empty, and writing 0 would tell
+        // every script exactly the wrong thing.
+        this.reportCondition(
+            "collections",
+            failed.length > 0 ? `Could not mirror ${failed.length} collection(s): ${failed.join("; ")}` : null,
+        );
     }
 
     private async refreshStatus(): Promise<void> {
@@ -456,14 +567,14 @@ class XiboAdapter extends utils.Adapter {
             this.statusFailures = 0;
             this.statusEverSucceeded = true;
             this.statusError = null;
+            this.reportCondition("status", null);
             await this.publishHealth();
         } catch (err) {
             if (this.unloaded) return;
             this.statusFailures++;
             this.statusError = (err as Error).message;
-            this.log.warn(
-                `Status refresh failed (${this.statusFailures} in a row): ${(err as Error).message}`,
-            );
+            this.reportCondition("status", `Status refresh failed: ${(err as Error).message}`);
+            this.log.debug(`Status refresh failures in a row: ${this.statusFailures}`);
             await this.publishHealth();
         }
     }
@@ -654,8 +765,14 @@ class XiboAdapter extends utils.Adapter {
         const [, groupSegment, suffix] = local.split(".");
         const entry = [...this.groupIndex.values()].find((g) => g.objectId === `displayGroups.${groupSegment}`);
         if (!entry) {
-            this.log.warn(`Write to unknown display group "${groupSegment}"`);
-            return;
+            // Thrown, not warned: the caller is a deck button whose state still
+            // exists, so returning quietly left it looking healthy while the
+            // wall never changed. The throw reaches onStateChange's catch,
+            // which records ok:false in commands.lastResult.
+            throw new Error(
+                `Display group "${groupSegment}" is not in the CMS any more, so nothing was played. ` +
+                `Check the display group still exists and that the inventory has refreshed.`,
+            );
         }
 
         if (suffix === "playLayoutId") {

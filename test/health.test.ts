@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import {
-    CONNECTION_FAILURE_THRESHOLD, describeWrite, evaluateHealth, parseDurationSeconds,
+    conditionAction, CONNECTION_FAILURE_THRESHOLD, describeWrite, evaluateHealth, parseDurationSeconds,
 } from "../src/lib/xibo-types";
 
 /**
@@ -113,5 +113,30 @@ describe("describeWrite", () => {
         }
         expect(describeWrite("displayGroups.g.playLayoutId", 1).command).to.equal("playLayoutId");
         expect(describeWrite("displayGroups.g.revert", true).command).to.equal("revert");
+    });
+});
+
+describe("conditionAction", () => {
+    it("reports a condition the first time", () => {
+        expect(conditionAction(undefined, "403 on /layout")).to.equal("report");
+    });
+
+    it("suppresses an unchanged repeat", () => {
+        // A standing 403 used to log 288 times a day and re-raise admin's
+        // "errors in the log" notice every five minutes.
+        expect(conditionAction("403 on /layout", "403 on /layout")).to.equal("suppress");
+    });
+
+    it("reports a different failure rather than hiding it behind the first", () => {
+        expect(conditionAction("403 on /layout", "connect ECONNREFUSED")).to.equal("report");
+    });
+
+    it("notes recovery, so the log says when it stopped", () => {
+        expect(conditionAction("403 on /layout", null)).to.equal("recovered");
+    });
+
+    it("says nothing when there was never a problem", () => {
+        // Otherwise every healthy poll would log a recovery.
+        expect(conditionAction(undefined, null)).to.equal("nothing");
     });
 });
