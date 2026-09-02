@@ -19,7 +19,7 @@
     "requestTimeoutLabel": "Request timeout (ms)",
     "requestTimeoutHelp": "How long to wait for the CMS before giving up on a request",
     "urlPlaceholder": "https://signage.internal",
-    "layoutFolderPlaceholder": "Pixelmabob",
+    "layoutFolderPlaceholder": "Signage",
     "playbackHeader": "Layout playback",
     "layoutPlayModeLabel": "How a layout reaches the player",
     "layoutPlayModeHelp": "Schedule works on any player and takes a few seconds. The XMR action is instant but is silently ignored by players that do not implement it, including Arexibo and gaxibo.",

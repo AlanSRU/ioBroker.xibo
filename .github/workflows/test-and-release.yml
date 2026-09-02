@@ -18,25 +18,17 @@ concurrency:
 
 jobs:
   check-and-lint:
+    if: contains(github.event.head_commit.message, '[skip ci]') == false
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22.x, 24.x]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
-      - run: npm ci
       - uses: ioBroker/testing-action-check@v1
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: "24.x"
           lint: true
-      - run: npm run check
-      - run: npm run build
+          type-checking: true
 
   adapter-tests:
+    if: contains(github.event.head_commit.message, '[skip ci]') == false
     needs: [check-and-lint]
     runs-on: ${{ matrix.os }}
     strategy:
@@ -46,24 +38,18 @@ jobs:
         # checker wants all three proven rather than assumed.
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: ioBroker/testing-action-adapter@v1
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
-      - run: npm ci
-      # The adapter's own suites, run directly rather than through
-      # ioBroker/testing-action-adapter (W3015): that action runs `npm test`
-      # for the unit suite and `npm run test:integration` for the integration
-      # one on a single OS, whereas the point of this job is the OS matrix.
-      # The integration suite has its own job below.
-      - run: npm run build
-      - run: npm test
+          os: ${{ matrix.os }}
+          # build/ is gitignored, so the tests need it produced first.
+          build: true
 
   # Starts a real js-controller and loads the built adapter under it. The unit
   # suite tests exported definitions and cannot see a crash in onReady, a bad
   # `common` or a state written before its parent exists; only this can.
   integration-tests:
+    if: contains(github.event.head_commit.message, '[skip ci]') == false
     needs: [check-and-lint]
     runs-on: ubuntu-latest
     steps:
@@ -78,23 +64,19 @@ jobs:
 
   deploy:
     needs: [adapter-tests, integration-tests]
-    # Only a version tag publishes; ordinary pushes stop at the tests.
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: |
+      contains(github.event.head_commit.message, '[skip ci]') == false &&
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    # The default GITHUB_TOKEN is read-only here, so creating the release comes
-    # back 403 "Resource not accessible by integration" - every check green and
-    # no release produced. Proven on the sibling streamdeck adapter's v0.3.1.
     permissions:
+      # contents: write to create the GitHub release; id-token: write for npm
+      # trusted publishing, which is why no npm-token is passed.
       contents: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: ioBroker/testing-action-deploy@v1
         with:
-          node-version: 24.x
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
+          node-version: "24.x"
+          build: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}

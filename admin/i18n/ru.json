@@ -10,7 +10,7 @@
     "inventoryPollIntervalLabel": "Обновление инвентаря (мс)",
     "layoutFolderHelp": "Предлагайте макеты только в этой папке CMS и ниже. Оставьте пустым для каждого макета в CMS.",
     "layoutFolderLabel": "Папка макета",
-    "layoutFolderPlaceholder": "Пиксельмабоб",
+    "layoutFolderPlaceholder": "Signage",
     "layoutPlayModeAction": "Действие XMR ChangeLayout (только официальный проигрыватель Xibo)",
     "layoutPlayModeHelp": "Расписание работает на любом плеере и занимает несколько секунд. Действие XMR происходит мгновенно, но молча игнорируется игроками, которые его не реализуют, включая Arexibo и gaxibo.",
     "layoutPlayModeLabel": "Как макет попадает к игроку",

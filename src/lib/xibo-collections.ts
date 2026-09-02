@@ -53,13 +53,19 @@ export interface CollectionDefinition {
  * read, so they are off unless asked for. The API passthrough still reaches
  * them, which is the right place for an occasional administrative query.
  */
-export const PERSONAL_DATA_KEYS = ["users", "userGroups", "sessions"] as const;
+export const PERSONAL_DATA_KEYS = ['users', 'userGroups', 'sessions'] as const;
 
 export const COLLECTIONS: CollectionDefinition[] = [
     // ---- the three the adapter has always mirrored, with their original ids
-    { key: "displayGroups", countKey: "displayGroupCount", name: "Display groups", path: "/displaygroup", defaultOn: true },
-    { key: "displays", countKey: "displayCount", name: "Displays", path: "/display", defaultOn: true },
-    { key: "layouts", countKey: "layoutCount", name: "Layouts", path: "/layout", defaultOn: true },
+    {
+        key: 'displayGroups',
+        countKey: 'displayGroupCount',
+        name: 'Display groups',
+        path: '/displaygroup',
+        defaultOn: true,
+    },
+    { key: 'displays', countKey: 'displayCount', name: 'Displays', path: '/display', defaultOn: true },
+    { key: 'layouts', countKey: 'layoutCount', name: 'Layouts', path: '/layout', defaultOn: true },
 
     /**
      * `/campaign` with no query returns an empty array on a CMS holding ten
@@ -73,73 +79,76 @@ export const COLLECTIONS: CollectionDefinition[] = [
      * means "either", which is the only value that cannot silently under-report
      * once someone adds a real multi-layout campaign.
      */
-    { key: "campaigns", name: "Campaigns", path: "/campaign?isLayoutSpecific=-1", defaultOn: true },
+    { key: 'campaigns', name: 'Campaigns', path: '/campaign?isLayoutSpecific=-1', defaultOn: true },
 
-    { key: "playlists", name: "Playlists", path: "/playlist", defaultOn: true },
-    { key: "datasets", name: "Datasets", path: "/dataset", defaultOn: true },
-    { key: "templates", name: "Layout templates", path: "/template", defaultOn: true },
-    { key: "tags", name: "Tags", path: "/tag", defaultOn: true },
-    { key: "resolutions", name: "Resolutions", path: "/resolution", defaultOn: true },
-    { key: "displayProfiles", name: "Display profiles", path: "/displayprofile", defaultOn: true },
-    { key: "dayParts", name: "Day parts", path: "/daypart", defaultOn: true },
-    { key: "folders", name: "Folders", path: "/folders", defaultOn: true, tree: true },
-    { key: "cmsCommands", name: "CMS commands", path: "/command", defaultOn: true },
-    { key: "syncGroups", name: "Sync groups", path: "/syncgroups", defaultOn: true },
-    { key: "menuBoards", name: "Menu boards", path: "/menuboards", defaultOn: true },
-    { key: "notifications", name: "Notifications", path: "/notification", defaultOn: true },
-    { key: "playerVersions", name: "Player software versions", path: "/playersoftware", defaultOn: true },
+    { key: 'playlists', name: 'Playlists', path: '/playlist', defaultOn: true },
+    { key: 'datasets', name: 'Datasets', path: '/dataset', defaultOn: true },
+    { key: 'templates', name: 'Layout templates', path: '/template', defaultOn: true },
+    { key: 'tags', name: 'Tags', path: '/tag', defaultOn: true },
+    { key: 'resolutions', name: 'Resolutions', path: '/resolution', defaultOn: true },
+    { key: 'displayProfiles', name: 'Display profiles', path: '/displayprofile', defaultOn: true },
+    { key: 'dayParts', name: 'Day parts', path: '/daypart', defaultOn: true },
+    { key: 'folders', name: 'Folders', path: '/folders', defaultOn: true, tree: true },
+    { key: 'cmsCommands', name: 'CMS commands', path: '/command', defaultOn: true },
+    { key: 'syncGroups', name: 'Sync groups', path: '/syncgroups', defaultOn: true },
+    { key: 'menuBoards', name: 'Menu boards', path: '/menuboards', defaultOn: true },
+    { key: 'notifications', name: 'Notifications', path: '/notification', defaultOn: true },
+    { key: 'playerVersions', name: 'Player software versions', path: '/playersoftware', defaultOn: true },
 
     // ---- off by default: large
     {
-        key: "library",
-        name: "Media library",
-        path: "/library",
+        key: 'library',
+        name: 'Media library',
+        path: '/library',
         defaultOn: false,
-        note: "One row per media item; a real estate holds thousands, which makes a single state unwieldy.",
+        note: 'One row per media item; a real estate holds thousands, which makes a single state unwieldy.',
     },
     {
-        key: "modules",
-        name: "Widget modules",
-        path: "/module",
+        key: 'modules',
+        name: 'Widget modules',
+        path: '/module',
         defaultOn: false,
-        note: "47 rows of static CMS capability on a stock 4.5.1, which change only when the CMS is upgraded.",
+        note: '47 rows of static CMS capability on a stock 4.5.1, which change only when the CMS is upgraded.',
     },
     {
-        key: "venues",
-        name: "Display venues",
-        path: "/displayvenue",
+        key: 'venues',
+        name: 'Display venues',
+        path: '/displayvenue',
         defaultOn: false,
-        note: "A fixed CMS lookup list of 99 venue types; it never changes at runtime.",
+        note: 'A fixed CMS lookup list of 99 venue types; it never changes at runtime.',
     },
 
     // ---- off by default: personal data
     {
-        key: "users",
-        name: "CMS users",
-        path: "/user",
+        key: 'users',
+        name: 'CMS users',
+        path: '/user',
         defaultOn: false,
-        note: "Holds names and email addresses of real people.",
+        note: 'Holds names and email addresses of real people.',
     },
     {
-        key: "userGroups",
-        name: "CMS user groups",
-        path: "/group",
+        key: 'userGroups',
+        name: 'CMS user groups',
+        path: '/group',
         defaultOn: false,
-        note: "Names the groups people belong to.",
+        note: 'Names the groups people belong to.',
     },
     {
-        key: "sessions",
-        name: "Active CMS sessions",
-        path: "/sessions",
+        key: 'sessions',
+        name: 'Active CMS sessions',
+        path: '/sessions',
         defaultOn: false,
-        note: "Shows who is signed in to the CMS, with their IP address.",
+        note: 'Shows who is signed in to the CMS, with their IP address.',
     },
 ];
 
 /** The keys mirrored when the instance has never been configured. */
-export const DEFAULT_COLLECTION_KEYS: string[] = COLLECTIONS.filter((c) => c.defaultOn).map((c) => c.key);
+export const DEFAULT_COLLECTION_KEYS: string[] = COLLECTIONS.filter(c => c.defaultOn).map(c => c.key);
 
-/** The `inventory.` state ids one collection writes. */
+/**
+ * The `inventory.` state ids one collection writes.
+ *
+ */
 export function collectionStateIds(definition: CollectionDefinition): { json: string; count: string } {
     return {
         json: `inventory.${definition.key}Json`,
@@ -153,12 +162,16 @@ export function collectionStateIds(definition: CollectionDefinition): { json: st
  * Most answer a bare array, `/folders` answers a tree, and a few wrap the rows
  * in an object. Anything unrecognised counts as zero rows rather than throwing,
  * so one odd collection cannot fail the whole refresh.
+ *
  */
 export function collectionRows(definition: CollectionDefinition, body: unknown): unknown[] {
-    const source = definition.rowsAt && body && typeof body === "object"
-        ? (body as Record<string, unknown>)[definition.rowsAt]
-        : body;
-    if (!Array.isArray(source)) return [];
+    const source =
+        definition.rowsAt && body && typeof body === 'object'
+            ? (body as Record<string, unknown>)[definition.rowsAt]
+            : body;
+    if (!Array.isArray(source)) {
+        return [];
+    }
     return definition.tree ? flattenTree(source) : source;
 }
 
@@ -173,17 +186,24 @@ export function collectionRows(definition: CollectionDefinition, body: unknown):
  *
  * The CMS sometimes hands `children` back as a JSON string rather than an
  * array, which is why this parses as well as walks.
+ *
  */
 function flattenTree(nodes: unknown[]): unknown[] {
     const flat: unknown[] = [];
     const walk = (list: unknown): void => {
-        const parsed = typeof list === "string" ? safeParse(list) : list;
-        if (!Array.isArray(parsed)) return;
+        const parsed = typeof list === 'string' ? safeParse(list) : list;
+        if (!Array.isArray(parsed)) {
+            return;
+        }
         for (const node of parsed) {
-            if (node === null || typeof node !== "object") continue;
+            if (node === null || typeof node !== 'object') {
+                continue;
+            }
             const { children, ...rest } = node as Record<string, unknown>;
             flat.push(rest);
-            if (children !== undefined) walk(children);
+            if (children !== undefined) {
+                walk(children);
+            }
         }
     };
     walk(nodes);
@@ -204,10 +224,12 @@ function safeParse(value: string): unknown {
  * An unset or empty configuration means the defaults rather than nothing: an
  * instance upgrading from 0.2.0 has no such setting, and silently mirroring
  * nothing would empty the three inventory states it already relies on.
+ *
  */
 export function selectedCollections(configured: unknown): CollectionDefinition[] {
-    const keys = Array.isArray(configured) && configured.length > 0
-        ? new Set(configured.map(String))
-        : new Set(DEFAULT_COLLECTION_KEYS);
-    return COLLECTIONS.filter((c) => keys.has(c.key));
+    const keys =
+        Array.isArray(configured) && configured.length > 0
+            ? new Set(configured.map(String))
+            : new Set(DEFAULT_COLLECTION_KEYS);
+    return COLLECTIONS.filter(c => keys.has(c.key));
 }

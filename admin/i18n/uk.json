@@ -10,7 +10,7 @@
     "inventoryPollIntervalLabel": "Оновлення запасів (мс)",
     "layoutFolderHelp": "Пропонуйте лише макети в цій папці CMS і нижче. Залиште порожнім для кожного макета в CMS.",
     "layoutFolderLabel": "Макет папки",
-    "layoutFolderPlaceholder": "Pixelmabob",
+    "layoutFolderPlaceholder": "Signage",
     "layoutPlayModeAction": "Дія XMR changeLayout (лише офіційний програвач Xibo)",
     "layoutPlayModeHelp": "Розклад працює на будь-якому плеєрі і займає кілька секунд. Дія XMR відбувається миттєво, але мовчки ігнорується гравцями, які її не реалізують, зокрема Arexibo та gaxibo.",
     "layoutPlayModeLabel": "Як макет потрапляє до гравця",

@@ -10,7 +10,7 @@
     "inventoryPollIntervalLabel": "Atualização de inventário (ms)",
     "layoutFolderHelp": "Ofereça layouts apenas nesta pasta CMS e abaixo. Deixe em branco para cada layout no CMS.",
     "layoutFolderLabel": "Pasta de layout",
-    "layoutFolderPlaceholder": "Pixelmabob",
+    "layoutFolderPlaceholder": "Signage",
     "layoutPlayModeAction": "Ação XMR changeLayout (somente player oficial do Xibo)",
     "layoutPlayModeHelp": "A programação funciona em qualquer player e leva alguns segundos. A ação XMR é instantânea, mas é silenciosamente ignorada pelos jogadores que não a implementam, incluindo Arexibo e Gaxibo.",
     "layoutPlayModeLabel": "Como um layout chega ao jogador",

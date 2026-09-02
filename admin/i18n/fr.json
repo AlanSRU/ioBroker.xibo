@@ -10,7 +10,7 @@
     "inventoryPollIntervalLabel": "Actualisation de l'inventaire (ms)",
     "layoutFolderHelp": "Proposez uniquement des mises en page dans ce dossier CMS et ci-dessous. Laissez vide pour chaque mise en page dans le CMS.",
     "layoutFolderLabel": "Dossier de mise en page",
-    "layoutFolderPlaceholder": "Pixelmabob",
+    "layoutFolderPlaceholder": "Signage",
     "layoutPlayModeAction": "Action XMR changeLayout (lecteur Xibo officiel uniquement)",
     "layoutPlayModeHelp": "Le calendrier fonctionne sur n'importe quel lecteur et prend quelques secondes. L'action XMR est instantanée mais est silencieusement ignorée par les joueurs qui ne la mettent pas en œuvre, notamment Arexibo et gaxibo.",
     "layoutPlayModeLabel": "Comment une mise en page atteint le joueur",

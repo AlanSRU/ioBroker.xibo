@@ -10,7 +10,7 @@
     "inventoryPollIntervalLabel": "库存刷新（毫秒）",
     "layoutFolderHelp": "仅提供此 CMS 文件夹及以下文件夹中的布局。将 CMS 中的每个布局留空。",
     "layoutFolderLabel": "布局文件夹",
-    "layoutFolderPlaceholder": "像素玛博",
+    "layoutFolderPlaceholder": "Signage",
     "layoutPlayModeAction": "XMR 更改布局动作（仅限 Xibo 官方播放器）",
     "layoutPlayModeHelp": "时间表适用于任何玩家，只需几秒钟。 XMR 动作是即时的，但会被不执行该动作的玩家（包括 Arexibo 和 gaxibo）默默地忽略。",
     "layoutPlayModeLabel": "布局如何到达玩家手中",

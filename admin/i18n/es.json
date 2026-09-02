@@ -10,7 +10,7 @@
     "inventoryPollIntervalLabel": "Actualización de inventario (ms)",
     "layoutFolderHelp": "Ofrezca diseños únicamente en esta carpeta CMS y a continuación. Déjelo vacío para cada diseño del CMS.",
     "layoutFolderLabel": "Carpeta de diseño",
-    "layoutFolderPlaceholder": "Pixelmabob",
+    "layoutFolderPlaceholder": "Signage",
     "layoutPlayModeAction": "Acción de cambio de diseño XMR (solo reproductor oficial Xibo)",
     "layoutPlayModeHelp": "El horario funciona en cualquier reproductor y tarda unos segundos. La acción XMR es instantánea, pero los jugadores que no la implementan, incluidos Arexibo y Gaxibo, la ignoran silenciosamente.",
     "layoutPlayModeLabel": "Cómo llega un diseño al jugador",

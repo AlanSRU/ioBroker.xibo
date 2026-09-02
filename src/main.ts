@@ -1,13 +1,21 @@
-import * as utils from "@iobroker/adapter-core";
-import { XiboClient } from "./lib/xibo-client";
+import * as utils from '@iobroker/adapter-core';
+import { XiboClient } from './lib/xibo-client';
+import type { StateDefinition, XiboConfig, XiboDisplayGroup } from './lib/xibo-types';
 import {
-    CHANNEL_DEFINITIONS, conditionAction, describeWrite, DISPLAY_GROUP_STATE_SUFFIXES, evaluateHealth,
-    inventoryStateDefinitions, parseDurationSeconds, sanitizeId, STATE_DEFINITIONS, StateDefinition,
-    XiboConfig, XiboDisplayGroup,
-} from "./lib/xibo-types";
-import {
-    COLLECTIONS, CollectionDefinition, collectionRows, collectionStateIds, selectedCollections,
-} from "./lib/xibo-collections";
+    CHANNEL_DEFINITIONS,
+    conditionAction,
+    describeWrite,
+    DISPLAY_GROUP_STATE_SUFFIXES,
+    evaluateHealth,
+    chooseGroupBranch,
+    groupRenameAction,
+    inventoryStateDefinitions,
+    parseDurationSeconds,
+    sanitizeId,
+    STATE_DEFINITIONS,
+} from './lib/xibo-types';
+import type { CollectionDefinition } from './lib/xibo-collections';
+import { COLLECTIONS, collectionRows, collectionStateIds, selectedCollections } from './lib/xibo-collections';
 
 /**
  * A string field out of a caller's payload.
@@ -15,26 +23,54 @@ import {
  * `String({})` is `"[object Object]"`, so coercing a `method` or `path` that
  * arrived as an object produced a request the caller never asked for rather
  * than an error naming the field.
+ *
  */
 function requireText(value: unknown, field: string, fallback: string): string {
-    if (value === undefined || value === null) return fallback;
-    if (typeof value !== "string") {
-        throw new Error(`"${field}" must be a string, got ${Array.isArray(value) ? "an array" : typeof value}`);
+    if (value === undefined || value === null) {
+        return fallback;
+    }
+    if (typeof value !== 'string') {
+        throw new Error(`"${field}" must be a string, got ${Array.isArray(value) ? 'an array' : typeof value}`);
     }
     return value;
 }
 
-/** Keeps a configured number inside sane bounds, falling back when unusable. */
+/**
+ * Keeps a configured number inside sane bounds, falling back when unusable.
+ *
+ */
 function clamp(value: unknown, min: number, max: number, fallback: number): number {
     const n = Number(value);
-    if (!Number.isFinite(n) || n <= 0) return fallback;
+    if (!Number.isFinite(n) || n <= 0) {
+        return fallback;
+    }
     return Math.min(max, Math.max(min, n));
 }
 
 interface GroupIndexEntry {
     objectId: string;
     displayGroupId: number;
-    name: string;
+    /**
+     * The CMS's own name for the group, as of the last sync, mirrored into
+     * `native.displayGroup`.
+     *
+     * Kept separately from the channel's label because the two answer
+     * different questions. Comparing the CMS name against the *label* made a
+     * user's own rename in admin indistinguishable from a rename in Xibo, so
+     * renaming the channel got it silently reverted on the next restart, with
+     * an info line claiming a CMS rename that never happened. Undefined on a
+     * branch created before this was recorded.
+     */
+    cmsName: string | undefined;
+    /** The channel's `common.name`, which the user may have changed. */
+    channelName: string;
+}
+
+/** A `displayGroups.<x>` channel found in the object tree at startup. */
+interface GroupCandidate {
+    objectId: string;
+    cmsName: string | undefined;
+    channelName: string;
 }
 
 class XiboAdapter extends utils.Adapter {
@@ -61,24 +97,26 @@ class XiboAdapter extends utils.Adapter {
     private reportedConditions = new Map<string, string>();
     /** Display group id -> where it lives in the object tree. */
     private groupIndex = new Map<number, GroupIndexEntry>();
+    /** Branches found at startup, until a CMS group claims one. */
+    private groupCandidates = new Map<number, GroupCandidate[]>();
     private layoutFolderId: number | null = null;
     /** Whether the configured layout folder has been resolved once already. */
     private layoutFolderChecked = false;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
-        super({ ...options, name: "xibo" });
-        this.on("ready", this.onReady.bind(this));
-        this.on("stateChange", this.onStateChange.bind(this));
-        this.on("message", this.onMessage.bind(this));
-        this.on("unload", this.onUnload.bind(this));
+        super({ ...options, name: 'xibo' });
+        this.on('ready', this.onReady.bind(this));
+        this.on('stateChange', this.onStateChange.bind(this));
+        this.on('message', this.onMessage.bind(this));
+        this.on('unload', this.onUnload.bind(this));
     }
 
     private get settings(): XiboConfig {
         const c = this.config as unknown as Partial<XiboConfig>;
         return {
-            url: (c.url ?? "").trim(),
-            clientId: (c.clientId ?? "").trim(),
-            clientSecret: (c.clientSecret ?? "").trim(),
+            url: (c.url ?? '').trim(),
+            clientId: (c.clientId ?? '').trim(),
+            clientSecret: (c.clientSecret ?? '').trim(),
             // Clamped at both ends in code, not just in the admin UI: an
             // instance object can be written by a restored backup or a script,
             // and a value at or above 2^31 makes Node fall back to a 1 ms timer
@@ -87,19 +125,19 @@ class XiboAdapter extends utils.Adapter {
             inventoryPollInterval: clamp(c.inventoryPollInterval, 30_000, 86_400_000, 300_000),
             statusPollInterval: clamp(c.statusPollInterval, 5_000, 3_600_000, 30_000),
             requestTimeout: clamp(c.requestTimeout, 2_000, 120_000, 30_000),
-            layoutFolder: (c.layoutFolder ?? "").trim(),
+            layoutFolder: (c.layoutFolder ?? '').trim(),
             defaultChangeDuration: Math.max(0, Number(c.defaultChangeDuration) || 0),
             // An unset or empty selection means the defaults, not nothing: an
             // instance upgrading from 0.2.0 has no such setting, and mirroring
             // nothing would empty the three states its scripts already read.
             inventoryCollections: selectedCollections(
                 (this.config as unknown as { inventoryCollections?: unknown }).inventoryCollections,
-            ).map((collection) => collection.key),
+            ).map(collection => collection.key),
             // Defaults to `schedule` because it is the mode that works on any
             // player: a schedule is honoured universally, whereas the XMR
             // action is silently ignored by players that do not implement it.
             // `action` is the optimisation, not the safe choice.
-            layoutPlayMode: c.layoutPlayMode === "action" ? "action" : "schedule",
+            layoutPlayMode: c.layoutPlayMode === 'action' ? 'action' : 'schedule',
             schedulePriority: clamp(c.schedulePriority, 1, 1000, 10),
         };
     }
@@ -112,19 +150,19 @@ class XiboAdapter extends utils.Adapter {
         await this.seedGroupIndex();
 
         const config = this.settings;
-        await this.setState("info.cmsUrl", { val: config.url, ack: true });
+        await this.setState('info.cmsUrl', { val: config.url, ack: true });
 
         if (!config.url || !config.clientId || !config.clientSecret) {
-            this.log.error("CMS URL, client id and client secret are all required — configure the instance.");
-            this.inventoryError = "Not configured";
+            this.log.error('CMS URL, client id and client secret are all required — configure the instance.');
+            this.inventoryError = 'Not configured';
             await this.publishHealth();
             return;
         }
 
         this.client = new XiboClient(config, this.log);
 
-        await this.subscribeStatesAsync("commands.*");
-        await this.subscribeStatesAsync("displayGroups.*");
+        await this.subscribeStatesAsync('commands.*');
+        await this.subscribeStatesAsync('displayGroups.*');
 
         // Each pass re-arms itself when it finishes, so a slow CMS delays the
         // next poll rather than stacking a second one on top of it. With
@@ -136,7 +174,9 @@ class XiboAdapter extends utils.Adapter {
 
     private async pollInventory(): Promise<void> {
         const ok = await this.refreshInventory();
-        if (this.unloaded) return;
+        if (this.unloaded) {
+            return;
+        }
 
         // A failed startup refresh leaves no display groups, so every button
         // press would be rejected until the full interval elapsed. Retry sooner,
@@ -156,7 +196,9 @@ class XiboAdapter extends utils.Adapter {
 
     private async pollStatus(): Promise<void> {
         await this.refreshStatus();
-        if (this.unloaded) return;
+        if (this.unloaded) {
+            return;
+        }
         this.statusTimer = this.setTimeout(() => void this.pollStatus(), this.settings.statusPollInterval);
     }
 
@@ -165,8 +207,12 @@ class XiboAdapter extends utils.Adapter {
             // First, so a poll already past its own guard stops before it
             // writes state or dereferences a cleared client.
             this.unloaded = true;
-            if (this.inventoryTimer) this.clearTimeout(this.inventoryTimer);
-            if (this.statusTimer) this.clearTimeout(this.statusTimer);
+            if (this.inventoryTimer) {
+                this.clearTimeout(this.inventoryTimer);
+            }
+            if (this.statusTimer) {
+                this.clearTimeout(this.statusTimer);
+            }
             this.client = null;
             callback();
         } catch {
@@ -190,7 +236,7 @@ class XiboAdapter extends utils.Adapter {
         // InfluxDB settings) alone.
         for (const channel of CHANNEL_DEFINITIONS) {
             await this.extendObjectAsync(channel.id, {
-                type: "channel",
+                type: 'channel',
                 common: { name: channel.name },
                 native: {},
             });
@@ -200,7 +246,7 @@ class XiboAdapter extends utils.Adapter {
         const states: StateDefinition[] = [...STATE_DEFINITIONS, ...inventoryStateDefinitions(mirrored)];
         for (const state of states) {
             await this.extendObjectAsync(state.id, {
-                type: "state",
+                type: 'state',
                 common: {
                     name: state.name,
                     type: state.type,
@@ -221,9 +267,12 @@ class XiboAdapter extends utils.Adapter {
         return selectedCollections(this.settings.inventoryCollections);
     }
 
-    /** Whether one collection is mirrored, for the writers outside the mirror pass. */
+    /**
+     * Whether one collection is mirrored, for the writers outside the mirror pass.
+     *
+     */
     private isMirrored(key: string): boolean {
-        return this.mirroredCollections().some((collection) => collection.key === key);
+        return this.mirroredCollections().some(collection => collection.key === key);
     }
 
     /**
@@ -233,13 +282,18 @@ class XiboAdapter extends utils.Adapter {
      * ever — a stale count and a stale JSON blob that look live, with nothing
      * to say they stopped being updated. Only states this adapter generates
      * are considered, so nothing outside `inventory.` is ever touched.
+     *
      */
     private async pruneDeselectedCollections(mirrored: CollectionDefinition[]): Promise<void> {
-        const keep = new Set(mirrored.flatMap((c) => Object.values(collectionStateIds(c))));
+        const keep = new Set(mirrored.flatMap(c => Object.values(collectionStateIds(c))));
         for (const collection of COLLECTIONS) {
             for (const id of Object.values(collectionStateIds(collection))) {
-                if (keep.has(id)) continue;
-                if (!(await this.objectExists(id))) continue;
+                if (keep.has(id)) {
+                    continue;
+                }
+                if (!(await this.objectExists(id))) {
+                    continue;
+                }
                 await this.delObjectAsync(id);
                 this.log.debug(`Removed ${id}: its collection is no longer mirrored`);
             }
@@ -261,42 +315,129 @@ class XiboAdapter extends utils.Adapter {
     private async seedGroupIndex(): Promise<void> {
         const channels = await this.getAdapterObjectsAsync();
         for (const [fullId, object] of Object.entries(channels)) {
-            if (object?.type !== "channel") continue;
+            if (object?.type !== 'channel') {
+                continue;
+            }
             const objectId = fullId.slice(`${this.namespace}.`.length);
-            if (!objectId.startsWith("displayGroups.") || objectId.split(".").length !== 2) continue;
-            const displayGroupId = Number((object.native as { displayGroupId?: unknown })?.displayGroupId);
-            if (!Number.isFinite(displayGroupId) || this.groupIndex.has(displayGroupId)) continue;
-            this.groupIndex.set(displayGroupId, {
+            if (!objectId.startsWith('displayGroups.') || objectId.split('.').length !== 2) {
+                continue;
+            }
+            const native = object.native as { displayGroupId?: unknown; displayGroup?: unknown };
+            const displayGroupId = Number(native?.displayGroupId);
+            if (!Number.isFinite(displayGroupId)) {
+                continue;
+            }
+            // Every candidate, not the first: 0.2.0 created a second branch
+            // after a CMS rename and both carry the same displayGroupId, so
+            // taking whichever the database happened to return first adopted
+            // the older, dead branch and left the one a deck had been rebound
+            // to unindexed — where every press failed with "not in the CMS any
+            // more", which was untrue. The CMS name decides instead, and only
+            // `ensureGroupObject` knows it.
+            const candidates = this.groupCandidates.get(displayGroupId) ?? [];
+            candidates.push({
                 objectId,
-                displayGroupId,
-                name: typeof object.common?.name === "string" ? object.common.name : objectId,
+                cmsName: typeof native?.displayGroup === 'string' ? native.displayGroup : undefined,
+                channelName: typeof object.common?.name === 'string' ? object.common.name : objectId,
             });
+            this.groupCandidates.set(displayGroupId, candidates);
+        }
+    }
+
+    /**
+     * Adopts the branch that belongs to a CMS group, out of what the tree has.
+     *
+     * Preference order: the branch whose recorded CMS name still matches, then
+     * the one whose id is what this group's name folds to, then the first.
+     * Anything not adopted is zeroed so a leftover from an older version reads
+     * as empty rather than sitting frozen and looking live.
+     */
+    private async adoptGroupBranch(group: XiboDisplayGroup): Promise<GroupIndexEntry | null> {
+        const candidates = this.groupCandidates.get(group.displayGroupId);
+        this.groupCandidates.delete(group.displayGroupId);
+        if (!candidates || candidates.length === 0) {
+            return null;
+        }
+
+        const folded = `displayGroups.${sanitizeId(group.displayGroup)}`;
+        const chosen = chooseGroupBranch(candidates, group.displayGroup, folded)!;
+
+        for (const other of candidates) {
+            if (other.objectId === chosen.objectId) {
+                continue;
+            }
+            this.log.warn(
+                `Display group ${group.displayGroupId} has more than one branch: using ${chosen.objectId} ` +
+                    `and zeroing ${other.objectId}, which an older version left behind. Delete it once ` +
+                    `nothing points at it.`,
+            );
+            await this.zeroGroupStates(other.objectId);
+        }
+
+        const entry: GroupIndexEntry = {
+            objectId: chosen.objectId,
+            displayGroupId: group.displayGroupId,
+            cmsName: chosen.cmsName,
+            channelName: chosen.channelName,
+        };
+        this.groupIndex.set(group.displayGroupId, entry);
+        return entry;
+    }
+
+    /** Makes a branch read as empty rather than frozen at its last values. */
+    private async zeroGroupStates(objectId: string): Promise<void> {
+        for (const [id, val] of [
+            ['displayCount', 0],
+            ['displaysOnline', 0],
+            ['currentLayout', ''],
+        ] as Array<[string, number | string]>) {
+            if (await this.objectExists(`${objectId}.${id}`)) {
+                await this.setState(`${objectId}.${id}`, { val, ack: true });
+            }
         }
     }
 
     private async ensureGroupObject(group: XiboDisplayGroup): Promise<GroupIndexEntry> {
-        const existing = this.groupIndex.get(group.displayGroupId);
+        const existing = this.groupIndex.get(group.displayGroupId) ?? (await this.adoptGroupBranch(group));
         if (existing) {
             // A group renamed in the CMS keeps its branch — moving it would
-            // break every deck button bound to the old id — but the name it
-            // reports has to follow, or the tree asserts the old one for ever.
-            if (existing.name !== group.displayGroup) {
-                this.log.info(
-                    `Display group ${group.displayGroupId} was renamed to "${group.displayGroup}"; ` +
-                    `keeping its branch at ${existing.objectId} so existing bindings keep working.`,
-                );
-                existing.name = group.displayGroup;
-                // The full object, not just `common`: extendObject creates when
-                // the object is missing rather than failing, so a partial one
-                // would create a typeless channel with no displayGroupId for
-                // seedGroupIndex to find next time. The merge is
-                // `extend(true, old, new)`, so naming `native` here cannot
-                // lose anything already on an existing object.
+            // break every deck button bound to the old id — but the name of
+            // record has to follow, or the tree asserts the old one for ever.
+            //
+            // Compared against the CMS name in `native`, never against the
+            // channel's label: the label is the user's to change, and
+            // comparing it made a rename in admin look exactly like a rename
+            // in Xibo, so the adapter reverted the user's own name on the next
+            // restart and logged a CMS rename that never happened.
+            if (existing.cmsName !== group.displayGroup) {
+                // Undefined means a branch from before the CMS name was
+                // recorded. Nothing is known about whether the label was ever
+                // the CMS's, so it is left alone and only the record is filled
+                // in — silently, since no rename has been observed.
+                const { firstRecord, userRenamed, updateLabel } = groupRenameAction(existing, group.displayGroup);
+                if (!firstRecord) {
+                    this.log.info(
+                        `Display group ${group.displayGroupId} was renamed in the CMS to ` +
+                            `"${group.displayGroup}"; keeping its branch at ${existing.objectId} so ` +
+                            `existing bindings keep working` +
+                            `${userRenamed ? ', and leaving your own channel name alone' : ''}.`,
+                    );
+                }
+                // The full object, not just the parts that changed:
+                // extendObject creates when the object is missing rather than
+                // failing, so a partial one would create a typeless channel
+                // with no displayGroupId for seedGroupIndex to find next time.
+                // The merge is `extend(true, old, new)`, so naming `native`
+                // cannot lose anything an existing object already has.
                 await this.extendObjectAsync(existing.objectId, {
-                    type: "channel",
-                    common: { name: group.displayGroup },
-                    native: { displayGroupId: group.displayGroupId },
+                    type: 'channel',
+                    ...(updateLabel ? { common: { name: group.displayGroup } } : {}),
+                    native: { displayGroupId: group.displayGroupId, displayGroup: group.displayGroup },
                 });
+                if (updateLabel) {
+                    existing.channelName = group.displayGroup;
+                }
+                existing.cmsName = group.displayGroup;
             }
             return existing;
         }
@@ -304,22 +445,24 @@ class XiboAdapter extends utils.Adapter {
         // Two groups can fold to the same id, so a collision falls back to the
         // CMS id rather than silently overwriting the first one's states.
         let objectId = `displayGroups.${sanitizeId(group.displayGroup)}`;
-        const clash = [...this.groupIndex.values()].some((g) => g.objectId === objectId);
-        if (clash) objectId = `${objectId}_${group.displayGroupId}`;
+        const clash = [...this.groupIndex.values()].some(g => g.objectId === objectId);
+        if (clash) {
+            objectId = `${objectId}_${group.displayGroupId}`;
+        }
 
         // The one object deliberately left as setObjectNotExists: this channel
         // is named after the CMS display group, and a user may well have
         // renamed it in admin. Extending it would overwrite that on every
         // start.
         await this.setObjectNotExistsAsync(objectId, {
-            type: "channel",
+            type: 'channel',
             common: { name: group.displayGroup },
-            native: { displayGroupId: group.displayGroupId },
+            native: { displayGroupId: group.displayGroupId, displayGroup: group.displayGroup },
         });
 
         for (const suffix of DISPLAY_GROUP_STATE_SUFFIXES) {
             await this.extendObjectAsync(`${objectId}.${suffix.id}`, {
-                type: "state",
+                type: 'state',
                 common: {
                     name: suffix.name,
                     type: suffix.type,
@@ -332,7 +475,12 @@ class XiboAdapter extends utils.Adapter {
             });
         }
 
-        const entry: GroupIndexEntry = { objectId, displayGroupId: group.displayGroupId, name: group.displayGroup };
+        const entry: GroupIndexEntry = {
+            objectId,
+            displayGroupId: group.displayGroupId,
+            cmsName: group.displayGroup,
+            channelName: group.displayGroup,
+        };
         this.groupIndex.set(group.displayGroupId, entry);
         return entry;
     }
@@ -353,18 +501,19 @@ class XiboAdapter extends utils.Adapter {
      * The first occurrence is logged at its real level, an unchanged repeat
      * goes to debug, a *changed* message is reported afresh, and recovery is
      * logged so the log says when it stopped rather than just going quiet.
+     *
      */
-    private reportCondition(key: string, message: string | null, level: "warn" | "error" = "warn"): void {
+    private reportCondition(key: string, message: string | null, level: 'warn' | 'error' = 'warn'): void {
         const previous = this.reportedConditions.get(key);
         switch (conditionAction(previous, message)) {
-            case "recovered":
+            case 'recovered':
                 this.reportedConditions.delete(key);
                 this.log.info(`${key}: recovered`);
                 return;
-            case "suppress":
+            case 'suppress':
                 this.log.debug(`${key} (still failing): ${message}`);
                 return;
-            case "report":
+            case 'report':
                 this.reportedConditions.set(key, message!);
                 this.log[level](message!);
                 return;
@@ -392,20 +541,24 @@ class XiboAdapter extends utils.Adapter {
      * and belongs in `lastError` and the log, but it is not a disconnection.
      */
     private async publishHealth(): Promise<void> {
-        if (this.unloaded) return;
+        if (this.unloaded) {
+            return;
+        }
         const { connected, lastError } = evaluateHealth({
             statusEverSucceeded: this.statusEverSucceeded,
             statusFailures: this.statusFailures,
             statusError: this.statusError,
             inventoryError: this.inventoryError,
         });
-        await this.setState("info.connection", { val: connected, ack: true });
-        await this.setState("info.lastError", { val: lastError, ack: true });
+        await this.setState('info.connection', { val: connected, ack: true });
+        await this.setState('info.lastError', { val: lastError, ack: true });
     }
 
     /** Returns whether the refresh succeeded, so the caller can back off. */
     private async refreshInventory(): Promise<boolean> {
-        if (!this.client || this.unloaded) return false;
+        if (!this.client || this.unloaded) {
+            return false;
+        }
         const config = this.settings;
 
         try {
@@ -438,16 +591,24 @@ class XiboAdapter extends utils.Adapter {
 
             // Display-specific groups are Xibo's internal per-display groups;
             // they are not what an operator would ever pick on a deck.
-            if (this.unloaded) return false;
-            const pickable = groups.filter((g) => g.isDisplaySpecific !== 1);
+            if (this.unloaded) {
+                return false;
+            }
+            const pickable = groups.filter(g => g.isDisplaySpecific !== 1);
 
             for (const group of pickable) {
-                if (this.unloaded) return false;
+                if (this.unloaded) {
+                    return false;
+                }
                 await this.ensureGroupObject(group);
             }
-            if (this.unloaded) return false;
+            if (this.unloaded) {
+                return false;
+            }
             await this.retireMissingGroups(pickable);
-            if (this.unloaded) return false;
+            if (this.unloaded) {
+                return false;
+            }
 
             // The three above are already in hand — and each was fetched in a
             // way the generic path could not reproduce: display groups are
@@ -455,21 +616,25 @@ class XiboAdapter extends utils.Adapter {
             // folder subtree. Reusing them keeps the request count the same as
             // 0.2.0 for anyone who mirrors only these three.
             const prefetched = new Map<string, unknown[]>([
-                ["displayGroups", pickable],
-                ["displays", displays],
-                ["layouts", layouts],
+                ['displayGroups', pickable],
+                ['displays', displays],
+                ['layouts', layouts],
             ]);
             await this.mirrorCollections(prefetched);
-            if (this.unloaded) return false;
+            if (this.unloaded) {
+                return false;
+            }
 
-            await this.setState("info.lastSync", { val: new Date().toISOString(), ack: true });
+            await this.setState('info.lastSync', { val: new Date().toISOString(), ack: true });
             this.inventoryError = null;
-            this.reportCondition("inventory", null);
+            this.reportCondition('inventory', null);
             await this.publishHealth();
             return true;
         } catch (err) {
-            if (this.unloaded) return false;
-            this.reportCondition("inventory", `Inventory refresh failed: ${(err as Error).message}`, "error");
+            if (this.unloaded) {
+                return false;
+            }
+            this.reportCondition('inventory', `Inventory refresh failed: ${(err as Error).message}`, 'error');
             // Recorded and logged, but not treated as a disconnection: the CMS
             // can be perfectly reachable and still refuse one collection.
             this.inventoryError = (err as Error).message;
@@ -496,6 +661,7 @@ class XiboAdapter extends utils.Adapter {
      * at its last counts looking live. A write to it then fails visibly
      * through `handleGroupWrite`, and if the group comes back the next refresh
      * adopts the same branch again.
+     *
      */
     private async retireMissingGroups(present: XiboDisplayGroup[]): Promise<void> {
         if (present.length === 0 && this.groupIndex.size > 0) {
@@ -504,41 +670,50 @@ class XiboAdapter extends utils.Adapter {
             // real deletion of the whole estate — and zeroing the lot would
             // take every deck button down with it.
             this.reportCondition(
-                "displayGroups",
+                'displayGroups',
                 `The CMS reported no display groups, but ${this.groupIndex.size} are known. ` +
-                `Keeping them rather than retiring all of them; check the application's permissions.`,
+                    `Keeping them rather than retiring all of them; check the application's permissions.`,
             );
             return;
         }
-        this.reportCondition("displayGroups", null);
+        this.reportCondition('displayGroups', null);
 
-        const live = new Set(present.map((g) => g.displayGroupId));
+        const live = new Set(present.map(g => g.displayGroupId));
         for (const [displayGroupId, entry] of [...this.groupIndex.entries()]) {
-            if (live.has(displayGroupId)) continue;
-            if (this.unloaded) return;
+            if (live.has(displayGroupId)) {
+                continue;
+            }
+            if (this.unloaded) {
+                return;
+            }
             this.log.warn(
-                `Display group ${displayGroupId} ("${entry.name}") is no longer in the CMS. ` +
-                `Its states under ${entry.objectId} are zeroed and will stop updating.`,
+                `Display group ${displayGroupId} ("${entry.cmsName ?? entry.objectId}") is no longer in the CMS. ` +
+                    `Its states under ${entry.objectId} are zeroed and will stop updating.`,
             );
-            await this.setState(`${entry.objectId}.displayCount`, { val: 0, ack: true });
-            await this.setState(`${entry.objectId}.displaysOnline`, { val: 0, ack: true });
-            await this.setState(`${entry.objectId}.currentLayout`, { val: "", ack: true });
+            await this.zeroGroupStates(entry.objectId);
             this.groupIndex.delete(displayGroupId);
         }
     }
 
     private async mirrorCollections(prefetched: Map<string, unknown[]>): Promise<void> {
         const client = this.client;
-        if (!client) return;
+        if (!client) {
+            return;
+        }
 
         const failed: string[] = [];
         for (const collection of this.mirroredCollections()) {
-            if (this.unloaded) return;
+            if (this.unloaded) {
+                return;
+            }
             const ids = collectionStateIds(collection);
             try {
-                const rows = prefetched.get(collection.key)
-                    ?? collectionRows(collection, await client.listCollection(collection.path));
-                if (this.unloaded) return;
+                const rows =
+                    prefetched.get(collection.key) ??
+                    collectionRows(collection, await client.listCollection(collection.path));
+                if (this.unloaded) {
+                    return;
+                }
                 await this.setState(ids.json, { val: JSON.stringify(rows), ack: true });
                 await this.setState(ids.count, { val: rows.length, ack: true });
             } catch (err) {
@@ -550,54 +725,66 @@ class XiboAdapter extends utils.Adapter {
         // read is not a collection that became empty, and writing 0 would tell
         // every script exactly the wrong thing.
         this.reportCondition(
-            "collections",
-            failed.length > 0 ? `Could not mirror ${failed.length} collection(s): ${failed.join("; ")}` : null,
+            'collections',
+            failed.length > 0 ? `Could not mirror ${failed.length} collection(s): ${failed.join('; ')}` : null,
         );
     }
 
     private async refreshStatus(): Promise<void> {
-        if (!this.client || this.unloaded) return;
+        if (!this.client || this.unloaded) {
+            return;
+        }
         try {
             const client = this.client;
             const displays = await client.listDisplays();
-            if (this.unloaded) return;
+            if (this.unloaded) {
+                return;
+            }
 
             for (const entry of this.groupIndex.values()) {
                 // Captured above: `this.client` is cleared on unload, and this
                 // loop can be mid-await when that happens.
-                if (this.unloaded) return;
+                if (this.unloaded) {
+                    return;
+                }
                 const inGroup = await client.listDisplaysInGroup(entry.displayGroupId);
-                if (this.unloaded) return;
-                const online = inGroup.filter((d) => d.loggedIn === 1);
+                if (this.unloaded) {
+                    return;
+                }
+                const online = inGroup.filter(d => d.loggedIn === 1);
 
                 await this.setState(`${entry.objectId}.id`, { val: entry.displayGroupId, ack: true });
-                await this.setState(`${entry.objectId}.name`, { val: entry.name, ack: true });
+                await this.setState(`${entry.objectId}.name`, { val: entry.cmsName ?? '', ack: true });
                 await this.setState(`${entry.objectId}.displayCount`, { val: inGroup.length, ack: true });
                 await this.setState(`${entry.objectId}.displaysOnline`, { val: online.length, ack: true });
                 await this.setState(`${entry.objectId}.currentLayout`, {
-                    val: inGroup[0]?.currentLayout ?? "",
+                    val: inGroup[0]?.currentLayout ?? '',
                     ack: true,
                 });
             }
 
-            if (this.unloaded) return;
+            if (this.unloaded) {
+                return;
+            }
             // Only when `displays` is actually mirrored. Writing it regardless
             // resurrected the value 30 seconds after `pruneDeselectedCollections`
             // had deleted the object, leaving an orphan that kept updating and
             // looked live — so the collection could not in fact be turned off.
-            if (this.isMirrored("displays")) {
-                await this.setState("inventory.displaysJson", { val: JSON.stringify(displays), ack: true });
+            if (this.isMirrored('displays')) {
+                await this.setState('inventory.displaysJson', { val: JSON.stringify(displays), ack: true });
             }
             this.statusFailures = 0;
             this.statusEverSucceeded = true;
             this.statusError = null;
-            this.reportCondition("status", null);
+            this.reportCondition('status', null);
             await this.publishHealth();
         } catch (err) {
-            if (this.unloaded) return;
+            if (this.unloaded) {
+                return;
+            }
             this.statusFailures++;
             this.statusError = (err as Error).message;
-            this.reportCondition("status", `Status refresh failed: ${(err as Error).message}`);
+            this.reportCondition('status', `Status refresh failed: ${(err as Error).message}`);
             this.log.debug(`Status refresh failures in a row: ${this.statusFailures}`);
             await this.publishHealth();
         }
@@ -618,39 +805,46 @@ class XiboAdapter extends utils.Adapter {
      *
      * A caller that sent no callback gets no reply, so the result is logged
      * instead of being dropped in silence.
+     *
      */
     private async onMessage(obj: ioBroker.Message): Promise<void> {
         const reply = (payload: unknown): void => {
-            if (obj.callback) this.sendTo(obj.from, obj.command, payload, obj.callback);
+            if (obj.callback) {
+                this.sendTo(obj.from, obj.command, payload, obj.callback);
+            }
         };
 
-        if (obj.command !== "api") {
+        if (obj.command !== 'api') {
             this.log.warn(`Unknown message command "${obj.command}"`);
             reply({ ok: false, error: `Unknown command "${obj.command}". The only one is "api".` });
             return;
         }
         if (!this.client) {
-            reply({ ok: false, error: "Not connected to a CMS — the instance is not configured." });
+            reply({ ok: false, error: 'Not connected to a CMS — the instance is not configured.' });
             return;
         }
 
-        const message = (typeof obj.message === "object" && obj.message !== null
-            ? obj.message
-            : {}) as { method?: unknown; path?: unknown; params?: unknown };
+        const message = (typeof obj.message === 'object' && obj.message !== null ? obj.message : {}) as {
+            method?: unknown;
+            path?: unknown;
+            params?: unknown;
+        };
 
         try {
-            const method = requireText(message.method, "method", "GET");
-            const path = requireText(message.path, "path", "");
-            const params = (typeof message.params === "object" && message.params !== null
-                ? message.params
-                : {}) as Record<string, unknown>;
+            const method = requireText(message.method, 'method', 'GET');
+            const path = requireText(message.path, 'path', '');
+            const params = (
+                typeof message.params === 'object' && message.params !== null ? message.params : {}
+            ) as Record<string, unknown>;
             const result = await this.client.call(method, path, params);
             this.log.debug(`api ${method} ${path}`);
             reply({ ok: true, result });
         } catch (err) {
             const error = (err as Error).message;
             this.log.warn(`api call failed: ${error}`);
-            if (!obj.callback) this.log.warn("The caller sent no callback, so it will never see that error.");
+            if (!obj.callback) {
+                this.log.warn('The caller sent no callback, so it will never see that error.');
+            }
             reply({ ok: false, error });
         }
     }
@@ -660,16 +854,18 @@ class XiboAdapter extends utils.Adapter {
     private async onStateChange(id: string, state: ioBroker.State | null | undefined): Promise<void> {
         // ack:true is the adapter's own write coming back; only un-acked writes
         // are commands from somewhere else.
-        if (!state || state.ack || !this.client) return;
+        if (!state || state.ack || !this.client) {
+            return;
+        }
 
         const local = id.slice(`${this.namespace}.`.length);
 
         try {
-            if (local.startsWith("commands.")) {
-                await this.handleCommand(local.slice("commands.".length), state.val);
+            if (local.startsWith('commands.')) {
+                await this.handleCommand(local.slice('commands.'.length), state.val);
                 return;
             }
-            if (local.startsWith("displayGroups.")) {
+            if (local.startsWith('displayGroups.')) {
                 await this.handleGroupWrite(local, state.val);
                 return;
             }
@@ -683,10 +879,12 @@ class XiboAdapter extends utils.Adapter {
     }
 
     private parsePayload(value: unknown): Record<string, unknown> {
-        if (typeof value !== "string" || value.trim().length === 0) return {};
+        if (typeof value !== 'string' || value.trim().length === 0) {
+            return {};
+        }
         try {
             const parsed = JSON.parse(value);
-            return typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : {};
+            return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {};
         } catch {
             throw new Error(`Payload is not valid JSON: ${String(value).slice(0, 120)}`);
         }
@@ -694,20 +892,25 @@ class XiboAdapter extends utils.Adapter {
 
     private requireNumber(payload: Record<string, unknown>, key: string): number {
         const value = Number(payload[key]);
-        if (!Number.isFinite(value)) throw new Error(`"${key}" is required and must be a number`);
+        if (!Number.isFinite(value)) {
+            throw new Error(`"${key}" is required and must be a number`);
+        }
         return value;
     }
 
-    /** The requested duration in seconds, or the configured default. */
+    /**
+     * The requested duration in seconds, or the configured default.
+     *
+     */
     private durationSeconds(payload: Record<string, unknown>): number {
         return parseDurationSeconds(payload.duration, this.settings.defaultChangeDuration);
     }
 
     private async handleCommand(command: string, value: unknown): Promise<void> {
-        const payload = command === "refresh" ? {} : this.parsePayload(value);
+        const payload = command === 'refresh' ? {} : this.parsePayload(value);
 
         switch (command) {
-            case "refresh": {
+            case 'refresh': {
                 // Both swallow their own errors, so the outcome has to be taken
                 // from the return value — otherwise a refresh against an
                 // unreachable CMS records ok:true and anything gating on that
@@ -715,79 +918,82 @@ class XiboAdapter extends utils.Adapter {
                 const ok = await this.refreshInventory();
                 await this.refreshStatus();
                 if (!ok) {
-                    await this.recordResult(command, payload, false, "Inventory refresh failed — see info.lastError");
-                    await this.setState("commands.refresh", { val: false, ack: true });
+                    await this.recordResult(command, payload, false, 'Inventory refresh failed — see info.lastError');
+                    await this.setState('commands.refresh', { val: false, ack: true });
                     return;
                 }
                 break;
             }
 
-            case "changeLayout":
+            case 'changeLayout':
                 await this.playLayout(
-                    this.requireNumber(payload, "displayGroupId"),
-                    this.requireNumber(payload, "layoutId"),
+                    this.requireNumber(payload, 'displayGroupId'),
+                    this.requireNumber(payload, 'layoutId'),
                     this.durationSeconds(payload),
                 );
                 break;
 
-            case "overlayLayout":
+            case 'overlayLayout':
                 // Refused rather than attempted: `schedule` mode exists because
                 // the players in use ignore XMR actions, and those same players
                 // render no overlay at all, by either route. Posting the action
                 // would report success and show nothing.
-                if (this.settings.layoutPlayMode === "schedule") {
+                if (this.settings.layoutPlayMode === 'schedule') {
                     throw new Error(
-                        "overlayLayout needs a player that implements XMR overlays. This instance is in " +
-                        "schedule mode, which exists for players that do not — use changeLayout instead.",
+                        'overlayLayout needs a player that implements XMR overlays. This instance is in ' +
+                            'schedule mode, which exists for players that do not — use changeLayout instead.',
                     );
                 }
                 await this.client!.overlayLayout(
-                    this.requireNumber(payload, "displayGroupId"),
-                    this.requireNumber(payload, "layoutId"),
+                    this.requireNumber(payload, 'displayGroupId'),
+                    this.requireNumber(payload, 'layoutId'),
                     this.durationSeconds(payload),
                 );
                 break;
 
-            case "revertToSchedule":
-                await this.revertGroup(this.requireNumber(payload, "displayGroupId"));
+            case 'revertToSchedule':
+                await this.revertGroup(this.requireNumber(payload, 'displayGroupId'));
                 break;
 
-            case "collectNow":
-                await this.client!.collectNow(this.requireNumber(payload, "displayGroupId"));
+            case 'collectNow':
+                await this.client!.collectNow(this.requireNumber(payload, 'displayGroupId'));
                 break;
 
-            case "api": {
+            case 'api': {
                 // The response body goes to lastResult, since a state cannot
                 // hand anything back to whoever wrote it. sendTo can, and the
                 // state's own description points there.
-                const params = typeof payload.params === "object" && payload.params !== null
-                    ? (payload.params as Record<string, unknown>)
-                    : {};
+                const params =
+                    typeof payload.params === 'object' && payload.params !== null
+                        ? (payload.params as Record<string, unknown>)
+                        : {};
                 const result = await this.client!.call(
-                    requireText(payload.method, "method", "GET"),
-                    requireText(payload.path, "path", ""),
+                    requireText(payload.method, 'method', 'GET'),
+                    requireText(payload.path, 'path', ''),
                     params,
                 );
                 await this.recordResult(command, payload, true, undefined, result);
-                await this.setState("commands.api", { val: "", ack: true });
+                await this.setState('commands.api', { val: '', ack: true });
                 return;
             }
 
             default:
                 // lastResult is written by the adapter, so it lands here on its
                 // own un-acked writes; anything else is a caller's mistake.
-                if (command !== "lastResult") this.log.warn(`Unknown command "${command}"`);
+                if (command !== 'lastResult') {
+                    this.log.warn(`Unknown command "${command}"`);
+                }
                 return;
         }
 
         await this.recordResult(command, payload, true);
         // Cleared so an identical follow-up request still triggers a change.
-        await this.setState(`commands.${command}`, { val: command === "refresh" ? false : "", ack: true });
+        await this.setState(`commands.${command}`, { val: command === 'refresh' ? false : '', ack: true });
     }
 
     private async handleGroupWrite(local: string, value: unknown): Promise<void> {
-        const [, groupSegment, suffix] = local.split(".");
-        const entry = [...this.groupIndex.values()].find((g) => g.objectId === `displayGroups.${groupSegment}`);
+        const [, groupSegment, suffix] = local.split('.');
+        const entry = [...this.groupIndex.values()].find(g => g.objectId === `displayGroups.${groupSegment}`);
         if (!entry) {
             // Thrown, not warned: the caller is a deck button whose state still
             // exists, so returning quietly left it looking healthy while the
@@ -795,25 +1001,25 @@ class XiboAdapter extends utils.Adapter {
             // which records ok:false in commands.lastResult.
             throw new Error(
                 `Display group "${groupSegment}" is not in the CMS any more, so nothing was played. ` +
-                `Check the display group still exists and that the inventory has refreshed.`,
+                    `Check the display group still exists and that the inventory has refreshed.`,
             );
         }
 
-        if (suffix === "playLayoutId") {
+        if (suffix === 'playLayoutId') {
             const layoutId = Number(value);
             if (!Number.isFinite(layoutId) || layoutId <= 0) {
                 throw new Error(`playLayoutId must be a positive layout id, got ${String(value)}`);
             }
             await this.playLayout(entry.displayGroupId, layoutId, this.settings.defaultChangeDuration);
             await this.setState(local, { val: layoutId, ack: true });
-            await this.recordResult("playLayoutId", { displayGroupId: entry.displayGroupId, layoutId }, true);
+            await this.recordResult('playLayoutId', { displayGroupId: entry.displayGroupId, layoutId }, true);
             return;
         }
 
-        if (suffix === "revert") {
+        if (suffix === 'revert') {
             await this.revertGroup(entry.displayGroupId);
             await this.setState(local, { val: false, ack: true });
-            await this.recordResult("revert", { displayGroupId: entry.displayGroupId }, true);
+            await this.recordResult('revert', { displayGroupId: entry.displayGroupId }, true);
             return;
         }
 
@@ -826,10 +1032,11 @@ class XiboAdapter extends utils.Adapter {
      * One place decides, so the command state, the per-group `playLayoutId`
      * write and anything added later cannot drift into using different
      * mechanisms.
+     *
      */
     private async playLayout(displayGroupId: number, layoutId: number, duration: number): Promise<void> {
         const { layoutPlayMode, schedulePriority } = this.settings;
-        if (layoutPlayMode === "action") {
+        if (layoutPlayMode === 'action') {
             await this.client!.changeLayout(displayGroupId, layoutId, duration);
             return;
         }
@@ -843,10 +1050,11 @@ class XiboAdapter extends utils.Adapter {
      * own priority event, so reverting means deleting it. The XMR revert action
      * would leave it in place and the sign would stay up — a revert that
      * reports success and changes nothing.
+     *
      */
     private async revertGroup(displayGroupId: number): Promise<void> {
         const { layoutPlayMode, schedulePriority } = this.settings;
-        if (layoutPlayMode === "action") {
+        if (layoutPlayMode === 'action') {
             await this.client!.revertToSchedule(displayGroupId);
             return;
         }
@@ -862,7 +1070,7 @@ class XiboAdapter extends utils.Adapter {
         error?: string,
         result?: unknown,
     ): Promise<void> {
-        await this.setState("commands.lastResult", {
+        await this.setState('commands.lastResult', {
             val: JSON.stringify({ ok, command, payload, error, result, ts: Date.now() }),
             ack: true,
         });

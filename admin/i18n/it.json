@@ -10,7 +10,7 @@
     "inventoryPollIntervalLabel": "Aggiornamento dell'inventario (ms)",
     "layoutFolderHelp": "Offri solo layout in questa cartella CMS e nelle versioni seguenti. Lascia vuoto per ogni layout nel CMS.",
     "layoutFolderLabel": "Cartella layout",
-    "layoutFolderPlaceholder": "Pixelmabob",
+    "layoutFolderPlaceholder": "Signage",
     "layoutPlayModeAction": "Modifica XMRAzione layout (solo lettore Xibo ufficiale)",
     "layoutPlayModeHelp": "La pianificazione funziona su qualsiasi lettore e richiede pochi secondi. L'azione XMR è istantanea ma viene silenziosamente ignorata dai giocatori che non la implementano, inclusi Arexibo e gaxibo.",
     "layoutPlayModeLabel": "Come un layout raggiunge il giocatore",

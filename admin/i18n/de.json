@@ -10,7 +10,7 @@
     "inventoryPollIntervalLabel": "Inventaraktualisierung (ms)",
     "layoutFolderHelp": "Bieten Sie nur Layouts in diesem CMS-Ordner und darunter an. Für jedes Layout im CMS leer lassen.",
     "layoutFolderLabel": "Layout-Ordner",
-    "layoutFolderPlaceholder": "Pixelmabob",
+    "layoutFolderPlaceholder": "Signage",
     "layoutPlayModeAction": "XMR-ChangeLayout-Aktion (nur offizieller Xibo-Player)",
     "layoutPlayModeHelp": "Der Zeitplan funktioniert auf jedem Player und dauert ein paar Sekunden. Die XMR-Aktion erfolgt sofort, wird jedoch von Spielern, die sie nicht implementieren, einschließlich Arexibo und Gaxibo, stillschweigend ignoriert.",
     "layoutPlayModeLabel": "Wie ein Layout den Spieler erreicht",

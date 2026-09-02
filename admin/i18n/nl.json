@@ -10,7 +10,7 @@
     "inventoryPollIntervalLabel": "Voorraadvernieuwing (ms)",
     "layoutFolderHelp": "Bied alleen lay-outs aan in deze CMS-map en lager. Laat leeg voor elke lay-out in het CMS.",
     "layoutFolderLabel": "Lay-out map",
-    "layoutFolderPlaceholder": "Pixelmabob",
+    "layoutFolderPlaceholder": "Signage",
     "layoutPlayModeAction": "XMR changeLayout-actie (alleen officiële Xibo-speler)",
     "layoutPlayModeHelp": "Schema werkt op elke speler en duurt een paar seconden. De XMR-actie is onmiddellijk, maar wordt stilzwijgend genegeerd door spelers die deze niet implementeren, waaronder Arexibo en Gaxibo.",
     "layoutPlayModeLabel": "Hoe een layout de speler bereikt",

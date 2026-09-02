@@ -20,7 +20,7 @@
  * which XMR actions the player implements. It costs a collect round trip —
  * seconds rather than instant — and leaves an event in the CMS schedule.
  */
-export type LayoutPlayMode = "action" | "schedule";
+export type LayoutPlayMode = 'action' | 'schedule';
 
 export interface XiboConfig {
     /** CMS root without the /api suffix, e.g. https://signage.internal */
@@ -33,9 +33,9 @@ export interface XiboConfig {
     statusPollInterval: number;
     requestTimeout: number;
     /**
-     * Only surface layouts in this CMS folder (and below). Pixelmabob publishes
-     * into one root folder, and a deck should offer those rather than every
-     * layout in the CMS.
+     * Only surface layouts in this CMS folder (and below). A publishing tool
+     * that files one layout per design puts them under a single root folder,
+     * and a deck should offer those rather than every layout in the CMS.
      */
     layoutFolder: string;
     /** Seconds a changeLayout stays in effect; 0 means until reverted. */
@@ -143,29 +143,93 @@ export interface StateDefinition {
 }
 
 export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
-    { id: "info", name: "Connection and diagnostics" },
-    { id: "inventory", name: "Mirrored CMS collections" },
-    { id: "commands", name: "Commands" },
-    { id: "displayGroups", name: "Per display group" },
+    { id: 'info', name: 'Connection and diagnostics' },
+    { id: 'inventory', name: 'Mirrored CMS collections' },
+    { id: 'commands', name: 'Commands' },
+    { id: 'displayGroups', name: 'Per display group' },
 ];
 
 export const STATE_DEFINITIONS: StateDefinition[] = [
-    { id: "info.connection", name: "CMS reachable and credentials valid", type: "boolean", role: "indicator.connected", read: true, write: false, def: false },
-    { id: "info.lastError", name: "Last error", type: "string", role: "text", read: true, write: false, def: "" },
-    { id: "info.lastSync", name: "Last successful inventory refresh", type: "string", role: "text", read: true, write: false, def: "" },
-    { id: "info.cmsUrl", name: "CMS URL", type: "string", role: "text", read: true, write: false, def: "" },
+    {
+        id: 'info.connection',
+        name: 'CMS reachable and credentials valid',
+        type: 'boolean',
+        role: 'indicator.connected',
+        read: true,
+        write: false,
+        def: false,
+    },
+    { id: 'info.lastError', name: 'Last error', type: 'string', role: 'text', read: true, write: false, def: '' },
+    {
+        id: 'info.lastSync',
+        name: 'Last successful inventory refresh',
+        type: 'string',
+        role: 'text',
+        read: true,
+        write: false,
+        def: '',
+    },
+    { id: 'info.cmsUrl', name: 'CMS URL', type: 'string', role: 'text', read: true, write: false, def: '' },
 
     // The inventory states are generated from the selected collections; see
     // {@link inventoryStateDefinitions}.
 
     // Written un-acked by callers; the adapter executes and clears them, so an
     // identical follow-up request still triggers.
-    { id: "commands.refresh", name: "Refresh inventory now", type: "boolean", role: "button", read: false, write: true, def: false },
-    { id: "commands.changeLayout", name: "Play a layout on a display group: {displayGroupId, layoutId, duration?}", type: "string", role: "json", read: false, write: true, def: "" },
-    { id: "commands.overlayLayout", name: "Overlay a layout on a display group: {displayGroupId, layoutId, duration?}", type: "string", role: "json", read: false, write: true, def: "" },
-    { id: "commands.revertToSchedule", name: "Return a display group to its schedule: {displayGroupId}", type: "string", role: "json", read: false, write: true, def: "" },
-    { id: "commands.collectNow", name: "Ask a display group to collect now: {displayGroupId}", type: "string", role: "json", read: false, write: true, def: "" },
-    { id: "commands.lastResult", name: "Result of the last command", type: "string", role: "json", read: true, write: false, def: "" },
+    {
+        id: 'commands.refresh',
+        name: 'Refresh inventory now',
+        type: 'boolean',
+        role: 'button',
+        read: false,
+        write: true,
+        def: false,
+    },
+    {
+        id: 'commands.changeLayout',
+        name: 'Play a layout on a display group: {displayGroupId, layoutId, duration?}',
+        type: 'string',
+        role: 'json',
+        read: false,
+        write: true,
+        def: '',
+    },
+    {
+        id: 'commands.overlayLayout',
+        name: 'Overlay a layout on a display group: {displayGroupId, layoutId, duration?}',
+        type: 'string',
+        role: 'json',
+        read: false,
+        write: true,
+        def: '',
+    },
+    {
+        id: 'commands.revertToSchedule',
+        name: 'Return a display group to its schedule: {displayGroupId}',
+        type: 'string',
+        role: 'json',
+        read: false,
+        write: true,
+        def: '',
+    },
+    {
+        id: 'commands.collectNow',
+        name: 'Ask a display group to collect now: {displayGroupId}',
+        type: 'string',
+        role: 'json',
+        read: false,
+        write: true,
+        def: '',
+    },
+    {
+        id: 'commands.lastResult',
+        name: 'Result of the last command',
+        type: 'string',
+        role: 'json',
+        read: true,
+        write: false,
+        def: '',
+    },
     /**
      * The escape hatch, for the operations this adapter does not model.
      *
@@ -174,7 +238,15 @@ export const STATE_DEFINITIONS: StateDefinition[] = [
      * `sendTo("xibo.0", "api", { method, path, params })` instead, which
      * returns it directly.
      */
-    { id: "commands.api", name: "Call any CMS operation: {method, path, params?}", type: "string", role: "json", read: false, write: true, def: "" },
+    {
+        id: 'commands.api',
+        name: 'Call any CMS operation: {method, path, params?}',
+        type: 'string',
+        role: 'json',
+        read: false,
+        write: true,
+        def: '',
+    },
 ];
 
 /**
@@ -183,6 +255,7 @@ export const STATE_DEFINITIONS: StateDefinition[] = [
  * Generated rather than listed, so a collection cannot be added to the
  * catalogue and then quietly never get its states created. The ids come from
  * `collectionStateIds`, which preserves the ones 0.2.0 already published.
+ *
  */
 export function inventoryStateDefinitions(
     collections: Array<{ key: string; countKey?: string; name: string }>,
@@ -192,17 +265,17 @@ export function inventoryStateDefinitions(
         definitions.push({
             id: `inventory.${c.key}Json`,
             name: `${c.name} as JSON`,
-            type: "string",
-            role: "json",
+            type: 'string',
+            role: 'json',
             read: true,
             write: false,
-            def: "[]",
+            def: '[]',
         });
         definitions.push({
             id: `inventory.${c.countKey ?? `${c.key}Count`}`,
             name: `${c.name} count`,
-            type: "number",
-            role: "value",
+            type: 'number',
+            role: 'value',
             read: true,
             write: false,
             def: 0,
@@ -213,14 +286,54 @@ export function inventoryStateDefinitions(
 
 /** Per display group, under `displayGroups.<sanitised name>`. */
 export const DISPLAY_GROUP_STATE_SUFFIXES: StateDefinition[] = [
-    { id: "id", name: "Display group id", type: "number", role: "value", read: true, write: false, def: 0 },
-    { id: "name", name: "Display group name", type: "string", role: "text", read: true, write: false, def: "" },
-    { id: "displayCount", name: "Displays in this group", type: "number", role: "value", read: true, write: false, def: 0 },
-    { id: "displaysOnline", name: "Displays currently logged in", type: "number", role: "value", read: true, write: false, def: 0 },
-    { id: "currentLayout", name: "Layout reported by the first display in the group", type: "string", role: "text", read: true, write: false, def: "" },
+    { id: 'id', name: 'Display group id', type: 'number', role: 'value', read: true, write: false, def: 0 },
+    { id: 'name', name: 'Display group name', type: 'string', role: 'text', read: true, write: false, def: '' },
+    {
+        id: 'displayCount',
+        name: 'Displays in this group',
+        type: 'number',
+        role: 'value',
+        read: true,
+        write: false,
+        def: 0,
+    },
+    {
+        id: 'displaysOnline',
+        name: 'Displays currently logged in',
+        type: 'number',
+        role: 'value',
+        read: true,
+        write: false,
+        def: 0,
+    },
+    {
+        id: 'currentLayout',
+        name: 'Layout reported by the first display in the group',
+        type: 'string',
+        role: 'text',
+        read: true,
+        write: false,
+        def: '',
+    },
     // Writable: the whole point of the adapter — press a button, play a layout.
-    { id: "playLayoutId", name: "Write a layoutId to play it on this group", type: "number", role: "level", read: true, write: true, def: 0 },
-    { id: "revert", name: "Return this group to its schedule", type: "boolean", role: "button", read: false, write: true, def: false },
+    {
+        id: 'playLayoutId',
+        name: 'Write a layoutId to play it on this group',
+        type: 'number',
+        role: 'level',
+        read: true,
+        write: true,
+        def: 0,
+    },
+    {
+        id: 'revert',
+        name: 'Return this group to its schedule',
+        type: 'boolean',
+        role: 'button',
+        read: false,
+        write: true,
+        def: false,
+    },
 ];
 
 /**
@@ -229,13 +342,14 @@ export const DISPLAY_GROUP_STATE_SUFFIXES: StateDefinition[] = [
  * ioBroker ids may not contain `.` or spaces, and the CMS allows both, so a name
  * is folded rather than used directly. Collisions are resolved by the caller
  * appending the id, because two display groups may legitimately fold together.
+ *
  */
 export function sanitizeId(value: string): string {
     const cleaned = value
         .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "");
-    return cleaned.length > 0 ? cleaned : "unnamed";
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    return cleaned.length > 0 ? cleaned : 'unnamed';
 }
 
 // ------------------------------------------------------------------- health
@@ -269,13 +383,14 @@ export interface HealthInputs {
  * without Layout access gets a permanent 403 on `/layout` — is real and
  * belongs in `lastError`, but it is not a disconnection. When both pollers
  * wrote this flag, that 403 made them contradict each other for ever.
+ *
  */
 export function evaluateHealth(inputs: HealthInputs): { connected: boolean; lastError: string } {
     return {
         // Never true unproven, and never false on a single blip.
         connected: inputs.statusEverSucceeded && inputs.statusFailures < CONNECTION_FAILURE_THRESHOLD,
         // A live status failure is the more urgent of the two, so it wins.
-        lastError: inputs.statusError ?? inputs.inventoryError ?? "",
+        lastError: inputs.statusError ?? inputs.inventoryError ?? '',
     };
 }
 
@@ -288,12 +403,15 @@ export function evaluateHealth(inputs: HealthInputs): { connected: boolean; last
  * event instead of a 30-second one, leaving the layout up until someone
  * reverted it by hand, while `lastResult` recorded `ok:true` and nothing was
  * logged. Every other field in that payload was checked; this one was not.
+ *
  */
 export function parseDurationSeconds(value: unknown, fallback: number): number {
-    if (value === undefined || value === null) return fallback;
+    if (value === undefined || value === null) {
+        return fallback;
+    }
     // `Number("")` is 0, not NaN, and 0 here means "until reverted" — so a
     // blank would quietly become an indefinite play rather than being refused.
-    if (typeof value === "string" && value.trim().length === 0) {
+    if (typeof value === 'string' && value.trim().length === 0) {
         throw new Error(`"duration" must be a number of seconds, got ${JSON.stringify(value)}`);
     }
     const seconds = Number(value);
@@ -319,15 +437,16 @@ export function parseDurationSeconds(value: unknown, fallback: number): number {
  *
  * So both paths name the write the same way: the last id segment, which is
  * already what the success paths pass.
+ *
  */
 export function describeWrite(local: string, value: unknown): { command: string; payload: unknown } {
-    const segments = local.split(".");
+    const segments = local.split('.');
     const command = segments[segments.length - 1] ?? local;
 
     // A command payload is JSON, and the caller wants it back in the shape it
     // sent — but the throw may have been the parse itself, so an unparseable
     // value is recorded verbatim rather than lost.
-    if (segments[0] === "commands" && typeof value === "string" && value.trim().length > 0) {
+    if (segments[0] === 'commands' && typeof value === 'string' && value.trim().length > 0) {
         try {
             return { command, payload: JSON.parse(value) };
         } catch {
@@ -336,14 +455,14 @@ export function describeWrite(local: string, value: unknown): { command: string;
     }
     // A per-group write is a bare value, so the group it was aimed at is the
     // only context worth keeping.
-    if (segments[0] === "displayGroups" && segments.length >= 3) {
+    if (segments[0] === 'displayGroups' && segments.length >= 3) {
         return { command, payload: { displayGroup: segments[1], value } };
     }
     return { command, payload: value };
 }
 
 /** What {@link conditionAction} decided to do about a repeating condition. */
-export type ConditionAction = "report" | "suppress" | "recovered" | "nothing";
+export type ConditionAction = 'report' | 'suppress' | 'recovered' | 'nothing';
 
 /**
  * Whether a condition is worth logging again.
@@ -357,8 +476,78 @@ export type ConditionAction = "report" | "suppress" | "recovered" | "nothing";
  *
  * A *changed* message still reports, so a second, different fault is never
  * hidden behind the first.
+ *
  */
 export function conditionAction(previous: string | undefined, message: string | null): ConditionAction {
-    if (message === null) return previous === undefined ? "nothing" : "recovered";
-    return previous === message ? "suppress" : "report";
+    if (message === null) {
+        return previous === undefined ? 'nothing' : 'recovered';
+    }
+    return previous === message ? 'suppress' : 'report';
+}
+
+// ------------------------------------------------------- display group branches
+
+export interface GroupBranch {
+    objectId: string;
+    /** The CMS's name as recorded in `native.displayGroup`, if it was. */
+    cmsName: string | undefined;
+    /** The channel's `common.name`, which the user may have changed. */
+    channelName: string;
+}
+
+/**
+ * Which branch belongs to a CMS display group, when the tree offers several.
+ *
+ * 0.2.0 derived the branch id from the group's name and stamped
+ * `native.displayGroupId` on it, so renaming a group in Xibo produced a
+ * a duplicate branch carrying the same id. Adopting whichever the objects
+ * database happened to return first took the older, dead one — deterministically,
+ * since the default file/jsonl backend iterates in creation order — renamed it,
+ * and left the branch a deck had been rebound to out of the index, where every
+ * press failed with "not in the CMS any more". Which was untrue.
+ *
+ * The recorded CMS name decides, then the id the current name folds to, then
+ * first-found as a last resort.
+ */
+export function chooseGroupBranch(
+    candidates: GroupBranch[],
+    cmsName: string,
+    foldedObjectId: string,
+): GroupBranch | undefined {
+    if (candidates.length === 0) {
+        return undefined;
+    }
+    return (
+        candidates.find(c => c.cmsName === cmsName) ??
+        candidates.find(c => c.objectId === foldedObjectId) ??
+        candidates[0]
+    );
+}
+
+export interface GroupRenamePlan {
+    /** Whether the CMS name differs from what was recorded. */
+    changed: boolean;
+    /** No CMS name was ever recorded, so nothing can be inferred about the label. */
+    firstRecord: boolean;
+    /** The user has renamed the channel, so the label is theirs to keep. */
+    userRenamed: boolean;
+    /** Whether to move the channel's label to the new CMS name. */
+    updateLabel: boolean;
+}
+
+/**
+ * What to do when the CMS's name for a group no longer matches the record.
+ *
+ * The comparison must be against the recorded CMS name, never the channel's
+ * label. Comparing the label made a rename in admin indistinguishable from a
+ * rename in Xibo, so the adapter reverted the user's own channel name on the
+ * next restart and logged a CMS rename that had never happened — while the
+ * code comment beside it explained that the object was left create-only
+ * precisely so a user rename would survive.
+ */
+export function groupRenameAction(branch: GroupBranch, cmsName: string): GroupRenamePlan {
+    const changed = branch.cmsName !== cmsName;
+    const firstRecord = branch.cmsName === undefined;
+    const userRenamed = branch.channelName !== branch.cmsName;
+    return { changed, firstRecord, userRenamed, updateLabel: changed && !firstRecord && !userRenamed };
 }

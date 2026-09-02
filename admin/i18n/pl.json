@@ -10,7 +10,7 @@
     "inventoryPollIntervalLabel": "Odświeżanie zapasów (ms)",
     "layoutFolderHelp": "Oferuj układy tylko w tym folderze CMS i poniżej. Pozostaw puste dla każdego układu w CMS.",
     "layoutFolderLabel": "Folder układu",
-    "layoutFolderPlaceholder": "Pixelmaboba",
+    "layoutFolderPlaceholder": "Signage",
     "layoutPlayModeAction": "Akcja zmiany układu XMR (tylko oficjalny gracz Xibo)",
     "layoutPlayModeHelp": "Harmonogram działa na każdym odtwarzaczu i zajmuje kilka sekund. Akcja XMR jest natychmiastowa, ale jest po cichu ignorowana przez graczy, którzy jej nie zastosują, w tym Arexibo i gaxibo.",
     "layoutPlayModeLabel": "Jak układ dociera do gracza",

@@ -1,5 +1,12 @@
 # ioBroker.xibo
 
+[![NPM version](https://img.shields.io/npm/v/iobroker.xibo.svg)](https://www.npmjs.com/package/iobroker.xibo)
+[![Downloads](https://img.shields.io/npm/dm/iobroker.xibo.svg)](https://www.npmjs.com/package/iobroker.xibo)
+![Number of Installations](https://iobroker.live/badges/xibo-installed.svg)
+![Current version in stable repository](https://iobroker.live/badges/xibo-stable.svg)
+
+**Tests:** ![Test and Release](https://github.com/AlanSRU/ioBroker.xibo/workflows/Test%20and%20Release/badge.svg)
+
 Play a layout on a Xibo display group, and put it back to its schedule.
 
 Built for driving LED walls from a StreamDeck: a button writes a layout id to a
@@ -167,7 +174,7 @@ it rather than flashing an empty screen while it downloads.
 
 **Folder scoping covers the subtree.** The CMS `folderId` filter matches one
 folder exactly, so scoping to a root folder alone finds nothing when layouts sit
-in per-project subfolders — which is how Pixelmabob files them. The adapter walks
+in per-project subfolders, which is how a per-project publisher files them. The adapter walks
 the folder tree and filters against it.
 
 ## Changelog
@@ -231,6 +238,20 @@ the folder tree and filters against it.
   occurrence is logged, repeats go to debug, a *different* failure still
   reports, and recovery is logged so the log says when it stopped.
 
+- **A display group you renamed in admin keeps your name.** The previous fix
+  compared the CMS's name against the channel's *label*, which made a rename
+  in admin indistinguishable from a rename in Xibo — so the adapter reverted
+  your name on the next restart and logged a CMS rename that had never
+  happened. The CMS name is now recorded separately in
+  `native.displayGroup`, and only a genuine CMS rename moves the label.
+- **A duplicate branch left by 0.2.0 no longer wins.** 0.2.0 created a second
+  branch after a CMS rename, both carrying the same `displayGroupId`. The
+  first fix adopted whichever the database returned first — deterministically
+  the older, dead one — leaving the branch your deck had been rebound to
+  unindexed, where every press failed with "not in the CMS any more". The
+  branch whose recorded CMS name matches now wins, and any leftover is zeroed
+  and named in a warning so you can delete it.
+
 **New**
 
 - **`inventory.*` now mirrors 23 CMS collections**, not three: campaigns,
@@ -278,12 +299,26 @@ the folder tree and filters against it.
 - Initial release: display group and layout inventory, and change layout /
   overlay layout / revert to schedule / collect now commands.
 
-## Related
+## Requirements
 
-- **Pixelmabob** — authors the designs and publishes the layouts this adapter plays
-- **ioBroker.streamdeck** — the decks that drive it
+- A [Xibo CMS](https://xibosignage.com/) (developed against 4.5) reachable from
+  ioBroker.
+- An **Application** in the CMS under *Administration -> Applications*, with the
+  `client_credentials` grant enabled. The adapter authenticates as that
+  application, not as a person, so scope it to what you want it to reach — the
+  API passthrough is as powerful as the credentials it is given.
+- At least one **layout** and one **display group**. Media in the library cannot
+  be scheduled on its own.
 
-Both are separate repositories in the same estate.
+## Player compatibility
+
+`schedule` mode, the default, works with any player because every player
+honours its own schedule. Use it unless you have a reason not to.
+
+`action` mode posts the CMS's `changeLayout` XMR action, which is instant but is
+**silently ignored** by players that do not implement it — the CMS still reports
+success. [Arexibo](https://github.com/schnitzeltony/arexibo) and gaxibo are in
+that category. Only choose `action` with the official Xibo player.
 
 ## License
 

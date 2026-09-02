@@ -1,24 +1,30 @@
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
+import config from '@iobroker/eslint-config';
 
-export default tseslint.config(
+export default [
+    ...config,
     {
-        // build/ is tsc output; admin/ is browser-side config served as-is.
-        ignores: ["build/**", "admin/**", "node_modules/**", ".dev-server/**"],
-    },
-    js.configs.recommended,
-    ...tseslint.configs.recommended,
-    {
-        files: ["**/*.ts"],
-        languageOptions: {
-            parserOptions: { ecmaVersion: 2022, sourceType: "module" },
-        },
+        files: ['src/**/*.ts'],
         rules: {
-            // The ioBroker API hands back `any` in several places (state values,
-            // message payloads); casting at every boundary would add noise
-            // without adding safety, and the values are validated on use.
-            "@typescript-eslint/no-explicit-any": "off",
-            "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+            /*
+             * This codebase documents *why* — the CMS quirk, the failure the
+             * code exists to prevent — in prose above the declaration, rather
+             * than as an @param list. `require-jsdoc` cannot see that, and its
+             * autofix inserts an empty jsdoc block above declarations that
+             * are already documented, which then trips `no-blank-blocks`:
+             * 68 of them on this repo, plus 61 bare @param lines carrying no
+             * description. Empty stubs above real comments are worse than no
+             * stubs, so the rules are off and the prose stays.
+             */
+            'jsdoc/require-jsdoc': 'off',
+            'jsdoc/require-param-description': 'off',
+            'jsdoc/require-param': 'off',
+            'jsdoc/require-returns-description': 'off',
         },
     },
-);
+    {
+        // build/ is tsc output; admin/ is browser-side config served as-is;
+        // the test suites are checked by tsc and run in CI rather than linted
+        // against the adapter's own jsdoc rules.
+        ignores: ['build/**', 'admin/**', 'test/**', 'node_modules/**', '.dev-server/**'],
+    },
+];

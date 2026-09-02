@@ -1,7 +1,13 @@
-import {
-    AdapterLogger, XiboConfig, XiboDayPart, XiboDisplay, XiboDisplayGroup, XiboFolder, XiboLayout,
+import type {
+    AdapterLogger,
+    XiboConfig,
+    XiboDayPart,
+    XiboDisplay,
+    XiboDisplayGroup,
+    XiboFolder,
+    XiboLayout,
     XiboScheduleEvent,
-} from "./xibo-types";
+} from './xibo-types';
 
 /** `eventTypeId` for a Layout event. The CMS numbers these; 1 is Layout. */
 const EVENT_TYPE_LAYOUT = 1;
@@ -17,7 +23,7 @@ const EVENT_TYPE_LAYOUT = 1;
 const CMS_OFFSET_TTL_MS = 3_600_000;
 
 /** Methods the generic passthrough will send. See {@link XiboClient.call}. */
-const ALLOWED_METHODS = new Set(["GET", "POST", "PUT", "DELETE"]);
+const ALLOWED_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE']);
 
 interface TokenResponse {
     access_token: string;
@@ -42,19 +48,24 @@ export class XiboClient {
     /** When that offset stops being trusted. See {@link cmsUtcOffset}. */
     private cmsOffsetExpiresAt = 0;
 
-    constructor(private readonly config: XiboConfig, private readonly log: AdapterLogger) {
-        this.base = config.url.replace(/\/+$/, "");
+    constructor(
+        private readonly config: XiboConfig,
+        private readonly log: AdapterLogger,
+    ) {
+        this.base = config.url.replace(/\/+$/, '');
     }
 
     private async authorize(): Promise<string> {
         // Refreshed a minute early rather than racing the expiry mid-command.
-        if (this.token && Date.now() < this.tokenExpiresAt - 60_000) return this.token;
+        if (this.token && Date.now() < this.tokenExpiresAt - 60_000) {
+            return this.token;
+        }
 
         const res = await this.fetchWithTimeout(`${this.base}/api/authorize/access_token`, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
-                grant_type: "client_credentials",
+                grant_type: 'client_credentials',
                 client_id: this.config.clientId,
                 client_secret: this.config.clientSecret,
             }),
@@ -79,6 +90,7 @@ export class XiboClient {
      * adapter instance to take `this.setTimeout` from, and a framework-managed
      * timer is the wrong tool for a per-request deadline — it would outlive the
      * request it belongs to.
+     *
      */
     private fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
         return fetch(url, { ...init, signal: AbortSignal.timeout(this.config.requestTimeout) });
@@ -93,10 +105,12 @@ export class XiboClient {
 
         if (!res.ok) {
             const body = (await res.text()).slice(0, 400);
-            throw new Error(`Xibo ${init.method ?? "GET"} ${path} failed (${res.status} ${res.statusText}): ${body}`);
+            throw new Error(`Xibo ${init.method ?? 'GET'} ${path} failed (${res.status} ${res.statusText}): ${body}`);
         }
         // Action endpoints answer 204 with no body; parsing that as JSON throws.
-        if (res.status === 204) return null;
+        if (res.status === 204) {
+            return null;
+        }
         const text = await res.text();
         return text.length > 0 ? JSON.parse(text) : null;
     }
@@ -107,9 +121,11 @@ export class XiboClient {
     } {
         const body = new URLSearchParams();
         for (const [key, value] of Object.entries(values)) {
-            if (value !== undefined) body.append(key, String(value));
+            if (value !== undefined) {
+                body.append(key, String(value));
+            }
         }
-        return { headers: { "Content-Type": "application/x-www-form-urlencoded" }, body };
+        return { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body };
     }
 
     // --------------------------------------------------------- generic call
@@ -128,37 +144,42 @@ export class XiboClient {
      * body for POST and PUT, which is what the CMS accepts. An array becomes
      * repeated `key[]` entries — the encoding the schedule endpoints require
      * and the one thing about this API that is easy to get silently wrong.
+     *
      */
     async call(method: string, path: string, params: Record<string, unknown> = {}): Promise<unknown> {
         const verb = method.toUpperCase();
         if (!ALLOWED_METHODS.has(verb)) {
-            throw new Error(`method must be one of ${[...ALLOWED_METHODS].join(", ")}, got "${method}"`);
+            throw new Error(`method must be one of ${[...ALLOWED_METHODS].join(', ')}, got "${method}"`);
         }
-        if (!path.startsWith("/")) {
+        if (!path.startsWith('/')) {
             throw new Error(`path must start with "/" and be relative to /api, got "${path}"`);
         }
 
         const query = new URLSearchParams();
         for (const [key, value] of Object.entries(params)) {
-            if (value === undefined || value === null) continue;
+            if (value === undefined || value === null) {
+                continue;
+            }
             if (Array.isArray(value)) {
-                for (const item of value) query.append(`${key}[]`, scalar(key, item));
+                for (const item of value) {
+                    query.append(`${key}[]`, scalar(key, item));
+                }
             } else {
                 query.append(key, scalar(key, value));
             }
         }
 
-        if (verb === "GET" || verb === "DELETE") {
+        if (verb === 'GET' || verb === 'DELETE') {
             const joined = query.toString();
-            const separator = path.includes("?") ? "&" : "?";
-            const withQuery = `${path}${joined ? separator + joined : ""}`;
+            const separator = path.includes('?') ? '&' : '?';
+            const withQuery = `${path}${joined ? separator + joined : ''}`;
             this.assertUnderApi(withQuery);
             return this.request(withQuery, { method: verb });
         }
         this.assertUnderApi(path);
         return this.request(path, {
             method: verb,
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: query,
         });
     }
@@ -176,6 +197,7 @@ export class XiboClient {
      *
      * Resolving it the same way `fetch` will and then checking where it landed
      * is the only form of this check that cannot be spelled around.
+     *
      */
     private assertUnderApi(path: string): void {
         const prefix = new URL(`${this.base}/api/`);
@@ -185,38 +207,42 @@ export class XiboClient {
         } catch {
             throw new Error(`path is not a usable URL path: "${path}"`);
         }
-        const underApi = resolved.origin === prefix.origin
-            && (resolved.pathname === prefix.pathname.replace(/\/$/, "")
-                || resolved.pathname.startsWith(prefix.pathname));
+        const underApi =
+            resolved.origin === prefix.origin &&
+            (resolved.pathname === prefix.pathname.replace(/\/$/, '') || resolved.pathname.startsWith(prefix.pathname));
         if (!underApi) {
-            throw new Error(
-                `path must stay under /api, but "${path}" resolves to ${resolved.pathname} — refused`,
-            );
+            throw new Error(`path must stay under /api, but "${path}" resolves to ${resolved.pathname} — refused`);
         }
     }
 
     // ------------------------------------------------------------- inventory
 
-    /** One mirrored collection, by the path its definition carries. */
+    /**
+     * One mirrored collection, by the path its definition carries.
+     *
+     */
     async listCollection(path: string): Promise<unknown> {
         return this.request(path);
     }
 
     async listDisplayGroups(): Promise<XiboDisplayGroup[]> {
-        return (await this.request("/displaygroup")) as XiboDisplayGroup[];
+        return (await this.request('/displaygroup')) as XiboDisplayGroup[];
     }
 
     async listDisplays(): Promise<XiboDisplay[]> {
-        return (await this.request("/display")) as XiboDisplay[];
+        return (await this.request('/display')) as XiboDisplay[];
     }
 
-    /** Displays belonging to one group, for per-group online counts. */
+    /**
+     * Displays belonging to one group, for per-group online counts.
+     *
+     */
     async listDisplaysInGroup(displayGroupId: number): Promise<XiboDisplay[]> {
         return (await this.request(`/display?displayGroupId=${displayGroupId}`)) as XiboDisplay[];
     }
 
     async listLayouts(): Promise<XiboLayout[]> {
-        return (await this.request("/layout")) as XiboLayout[];
+        return (await this.request('/layout')) as XiboLayout[];
     }
 
     /**
@@ -224,13 +250,16 @@ export class XiboClient {
      *
      * The CMS `folderId` filter matches that one folder exactly, so asking for
      * the root folder returns nothing when the layouts sit in per-project
-     * subfolders — which is exactly how Pixelmabob files them. The subtree is
+     * subfolders, which is how a per-project publisher files them. The subtree is
      * computed here and the layouts filtered against it.
+     *
      */
     async listLayoutsInFolderTree(path: string): Promise<XiboLayout[]> {
         const folders = await this.listFolders();
         const rootId = this.resolvePath(folders, path);
-        if (rootId === null) return [];
+        if (rootId === null) {
+            return [];
+        }
 
         const wanted = new Set<number>([rootId]);
         let grew = true;
@@ -245,38 +274,49 @@ export class XiboClient {
         }
 
         const all = await this.listLayouts();
-        return all.filter((l) => l.folderId !== undefined && wanted.has(l.folderId));
+        return all.filter(l => l.folderId !== undefined && wanted.has(l.folderId));
     }
 
     /** The folder tree, flattened. */
     private async listFolders(): Promise<XiboFolder[]> {
         const flat: XiboFolder[] = [];
         const walk = (nodes: unknown): void => {
-            const list = typeof nodes === "string" ? safeParse(nodes) : nodes;
-            if (!Array.isArray(list)) return;
+            const list = typeof nodes === 'string' ? safeParse(nodes) : nodes;
+            if (!Array.isArray(list)) {
+                return;
+            }
             for (const node of list as XiboFolder[]) {
                 flat.push(node);
-                if (node.children) walk(node.children);
+                if (node.children) {
+                    walk(node.children);
+                }
             }
         };
-        walk(await this.request("/folders"));
+        walk(await this.request('/folders'));
         return flat;
     }
 
     private resolvePath(folders: XiboFolder[], path: string): number | null {
-        const root = folders.find((f) => f.isRoot === 1);
-        if (!root) return null;
+        const root = folders.find(f => f.isRoot === 1);
+        if (!root) {
+            return null;
+        }
 
         let parentId = root.id;
-        for (const segment of path.split("/")) {
-            const found = folders.find((f) => f.parentId === parentId && f.text === segment);
-            if (!found) return null;
+        for (const segment of path.split('/')) {
+            const found = folders.find(f => f.parentId === parentId && f.text === segment);
+            if (!found) {
+                return null;
+            }
             parentId = found.id;
         }
         return parentId;
     }
 
-    /** Folder id for a slash-separated path, or null. Creates nothing. */
+    /**
+     * Folder id for a slash-separated path, or null. Creates nothing.
+     *
+     */
     async findFolderPath(path: string): Promise<number | null> {
         return this.resolvePath(await this.listFolders(), path);
     }
@@ -290,13 +330,14 @@ export class XiboClient {
      * changes it or the group is reverted — which is what a live operator
      * wants: what you pressed is what is showing, and it does not expire
      * halfway through a match.
+     *
      */
     async changeLayout(displayGroupId: number, layoutId: number, durationSeconds?: number): Promise<void> {
         await this.request(`/displaygroup/${displayGroupId}/action/changeLayout`, {
-            method: "POST",
+            method: 'POST',
             ...this.form({
                 layoutId,
-                changeMode: "replace",
+                changeMode: 'replace',
                 duration: durationSeconds && durationSeconds > 0 ? durationSeconds : undefined,
                 // The player fetches the layout before showing it, so a first
                 // play does not flash an empty screen while it downloads.
@@ -306,10 +347,13 @@ export class XiboClient {
         this.log.debug(`changeLayout: layout ${layoutId} on display group ${displayGroupId}`);
     }
 
-    /** Shows a layout on top of whatever is playing, rather than replacing it. */
+    /**
+     * Shows a layout on top of whatever is playing, rather than replacing it.
+     *
+     */
     async overlayLayout(displayGroupId: number, layoutId: number, durationSeconds?: number): Promise<void> {
         await this.request(`/displaygroup/${displayGroupId}/action/overlayLayout`, {
-            method: "POST",
+            method: 'POST',
             ...this.form({
                 layoutId,
                 duration: durationSeconds && durationSeconds > 0 ? durationSeconds : undefined,
@@ -321,7 +365,9 @@ export class XiboClient {
     // ------------------------------------------------------------ scheduling
 
     private async listDayParts(): Promise<XiboDayPart[]> {
-        if (!this.dayParts) this.dayParts = (await this.request("/daypart")) as XiboDayPart[];
+        if (!this.dayParts) {
+            this.dayParts = (await this.request('/daypart')) as XiboDayPart[];
+        }
         return this.dayParts;
     }
 
@@ -332,10 +378,11 @@ export class XiboClient {
      * they are 2 and 1, so hard-coding either files the event against the
      * wrong day part — which shows in the CMS as a scheduled event that simply
      * never plays.
+     *
      */
-    private async dayPartId(kind: "always" | "custom"): Promise<number> {
+    private async dayPartId(kind: 'always' | 'custom'): Promise<number> {
         const parts = await this.listDayParts();
-        const found = parts.find((p) => (kind === "always" ? p.isAlways === 1 : p.isCustom === 1));
+        const found = parts.find(p => (kind === 'always' ? p.isAlways === 1 : p.isCustom === 1));
         if (!found) {
             throw new Error(`The CMS has no "${kind}" day part, so a layout cannot be scheduled`);
         }
@@ -368,14 +415,14 @@ export class XiboClient {
             return this.cmsOffsetMinutes;
         }
 
-        const clock = (await this.request("/clock")) as { time?: string } | null;
-        const match = /(\d{1,2}):(\d{2})/.exec(clock?.time ?? "");
+        const clock = (await this.request('/clock')) as { time?: string } | null;
+        const match = /(\d{1,2}):(\d{2})/.exec(clock?.time ?? '');
         if (!match) {
             // Treating the CMS as UTC is wrong wherever it is not, so this says
             // so rather than quietly producing events at the wrong time.
             this.log.warn(
                 `Could not read the CMS clock (got ${JSON.stringify(clock?.time)}); assuming its ` +
-                `timezone is UTC. A timed layout may start or end an hour out.`,
+                    `timezone is UTC. A timed layout may start or end an hour out.`,
             );
             this.cmsOffsetMinutes = 0;
             this.cmsOffsetExpiresAt = Date.now() + CMS_OFFSET_TTL_MS;
@@ -386,20 +433,27 @@ export class XiboClient {
         const cmsMinutes = Number(match[1]) * 60 + Number(match[2]);
         let delta = cmsMinutes - (now.getUTCHours() * 60 + now.getUTCMinutes());
         // The two clocks can sit either side of midnight.
-        if (delta > 720) delta -= 1440;
-        if (delta <= -720) delta += 1440;
+        if (delta > 720) {
+            delta -= 1440;
+        }
+        if (delta <= -720) {
+            delta += 1440;
+        }
         // Every real offset is a whole number of quarter hours, so rounding to
         // 15 absorbs both the minute resolution of /clock and a little skew.
         this.cmsOffsetMinutes = Math.round(delta / 15) * 15;
         this.cmsOffsetExpiresAt = Date.now() + CMS_OFFSET_TTL_MS;
-        this.log.debug(`CMS clock is UTC${this.cmsOffsetMinutes >= 0 ? "+" : ""}${this.cmsOffsetMinutes} minutes`);
+        this.log.debug(`CMS clock is UTC${this.cmsOffsetMinutes >= 0 ? '+' : ''}${this.cmsOffsetMinutes} minutes`);
         return this.cmsOffsetMinutes;
     }
 
-    /** A moment as `Y-m-d H:i:s` in the CMS's timezone — the only format it takes. */
+    /**
+     * A moment as `Y-m-d H:i:s` in the CMS's timezone — the only format it takes.
+     *
+     */
     private async cmsDateTime(at: Date): Promise<string> {
         const shifted = new Date(at.getTime() + (await this.cmsUtcOffset()) * 60_000);
-        const pad = (n: number): string => String(n).padStart(2, "0");
+        const pad = (n: number): string => String(n).padStart(2, '0');
         return (
             `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())} ` +
             `${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}:${pad(shifted.getUTCSeconds())}`
@@ -412,16 +466,24 @@ export class XiboClient {
      * Every layout has its own single-layout campaign and the schedule names
      * that, not the layout. Sending a layoutId where a campaignId belongs is
      * accepted by the CMS and schedules something else entirely.
+     *
      */
     async campaignIdForLayout(layoutId: number): Promise<number> {
         const rows = (await this.request(`/layout?layoutId=${layoutId}`)) as XiboLayout[];
-        const layout = Array.isArray(rows) ? rows.find((l) => l.layoutId === layoutId) : undefined;
-        if (!layout) throw new Error(`Layout ${layoutId} does not exist in the CMS`);
-        if (!layout.campaignId) throw new Error(`Layout ${layoutId} has no campaign, so it cannot be scheduled`);
+        const layout = Array.isArray(rows) ? rows.find(l => l.layoutId === layoutId) : undefined;
+        if (!layout) {
+            throw new Error(`Layout ${layoutId} does not exist in the CMS`);
+        }
+        if (!layout.campaignId) {
+            throw new Error(`Layout ${layoutId} has no campaign, so it cannot be scheduled`);
+        }
         return layout.campaignId;
     }
 
-    /** Layout events scheduled on one display group. */
+    /**
+     * Layout events scheduled on one display group.
+     *
+     */
     async listLayoutEvents(displayGroupId: number): Promise<XiboScheduleEvent[]> {
         const events = (await this.request(
             `/schedule?displayGroupIds%5B%5D=${displayGroupId}&eventTypeId=${EVENT_TYPE_LAYOUT}`,
@@ -430,7 +492,7 @@ export class XiboClient {
     }
 
     async deleteScheduleEvent(eventId: number): Promise<void> {
-        await this.request(`/schedule/${eventId}`, { method: "DELETE" });
+        await this.request(`/schedule/${eventId}`, { method: 'DELETE' });
     }
 
     /**
@@ -442,10 +504,13 @@ export class XiboClient {
      *
      * Returns how many were removed, so a caller can report a revert that had
      * nothing to revert.
+     *
      */
     async clearScheduledLayouts(displayGroupId: number, priority: number): Promise<number> {
-        const ours = (await this.listLayoutEvents(displayGroupId)).filter((e) => e.isPriority === priority);
-        for (const event of ours) await this.deleteScheduleEvent(event.eventId);
+        const ours = (await this.listLayoutEvents(displayGroupId)).filter(e => e.isPriority === priority);
+        for (const event of ours) {
+            await this.deleteScheduleEvent(event.eventId);
+        }
         return ours.length;
     }
 
@@ -461,6 +526,7 @@ export class XiboClient {
      * enforces locally — so the sign comes down on time without needing to
      * hear from the CMS again. With no duration it is an "always" event and
      * stays until something replaces it or the group is reverted.
+     *
      */
     async scheduleLayout(
         displayGroupId: number,
@@ -472,19 +538,19 @@ export class XiboClient {
         // leaving the group with its previous event already deleted.
         const campaignId = await this.campaignIdForLayout(layoutId);
         const timed = durationSeconds !== undefined && durationSeconds > 0;
-        const dayPartId = await this.dayPartId(timed ? "custom" : "always");
+        const dayPartId = await this.dayPartId(timed ? 'custom' : 'always');
         const from = new Date();
         const fromDt = await this.cmsDateTime(from);
         const toDt = timed ? await this.cmsDateTime(new Date(from.getTime() + durationSeconds * 1000)) : undefined;
 
         const replaced = await this.clearScheduledLayouts(displayGroupId, priority);
 
-        await this.request("/schedule", {
-            method: "POST",
+        await this.request('/schedule', {
+            method: 'POST',
             ...this.form({
                 eventTypeId: EVENT_TYPE_LAYOUT,
                 campaignId,
-                "displayGroupIds[]": displayGroupId,
+                'displayGroupIds[]': displayGroupId,
                 dayPartId,
                 isPriority: priority,
                 displayOrder: 0,
@@ -499,18 +565,18 @@ export class XiboClient {
         await this.collectNow(displayGroupId);
         this.log.debug(
             `scheduleLayout: layout ${layoutId} (campaign ${campaignId}) on display group ${displayGroupId} ` +
-            `at priority ${priority}${timed ? `, until ${toDt}` : ""}, replacing ${replaced}`,
+                `at priority ${priority}${timed ? `, until ${toDt}` : ''}, replacing ${replaced}`,
         );
         return { replaced };
     }
 
     async revertToSchedule(displayGroupId: number): Promise<void> {
-        await this.request(`/displaygroup/${displayGroupId}/action/revertToSchedule`, { method: "POST" });
+        await this.request(`/displaygroup/${displayGroupId}/action/revertToSchedule`, { method: 'POST' });
         this.log.debug(`revertToSchedule: display group ${displayGroupId}`);
     }
 
     async collectNow(displayGroupId: number): Promise<void> {
-        await this.request(`/displaygroup/${displayGroupId}/action/collectNow`, { method: "POST" });
+        await this.request(`/displaygroup/${displayGroupId}/action/collectNow`, { method: 'POST' });
     }
 }
 
@@ -527,16 +593,23 @@ export class XiboClient {
  *
  * Arrays are handled by the caller, which spreads them into `key[]` entries;
  * this sees only their items, which must themselves be scalar.
+ *
  */
 function scalar(key: string, value: unknown): string {
-    if (value === null || typeof value === "object" || typeof value === "function") {
-        throw new Error(
-            `parameter "${key}" must be a string, number or boolean, got ${
-                Array.isArray(value) ? "a nested array" : typeof value
-            } — the CMS would have received "[object Object]"`,
-        );
+    // Narrowed to exactly what the CMS can take, so the conversion is provably
+    // safe rather than merely likely: excluding objects still leaves symbol and
+    // bigint, neither of which means anything in a form body.
+    if (typeof value === 'string') {
+        return value;
     }
-    return String(value);
+    if (typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+    }
+    throw new Error(
+        `parameter "${key}" must be a string, number or boolean, got ${
+            Array.isArray(value) ? 'a nested array' : typeof value
+        } — the CMS would have received "[object Object]"`,
+    );
 }
 
 function safeParse(value: string): unknown {
