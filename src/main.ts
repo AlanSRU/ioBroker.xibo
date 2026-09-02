@@ -384,6 +384,19 @@ class XiboAdapter extends utils.Adapter {
         return entry;
     }
 
+    /**
+     * Refreshes the cached channel label from the object tree.
+     *
+     * A `common.name` that is not a plain string is a translated name the user
+     * or admin owns; recording it as something the CMS name can never equal
+     * means it is treated as theirs and left alone.
+     */
+    private async refreshChannelName(entry: GroupIndexEntry): Promise<void> {
+        const object = await this.getObjectAsync(entry.objectId);
+        const name = object?.common?.name;
+        entry.channelName = typeof name === 'string' ? name : `${entry.objectId} (translated)`;
+    }
+
     /** Makes a branch read as empty rather than frozen at its last values. */
     private async zeroGroupStates(objectId: string): Promise<void> {
         for (const [id, val] of [
@@ -410,6 +423,13 @@ class XiboAdapter extends utils.Adapter {
             // in Xibo, so the adapter reverted the user's own name on the next
             // restart and logged a CMS rename that never happened.
             if (existing.cmsName !== group.displayGroup) {
+                // Re-read the label from the object before deciding. The
+                // adapter does not subscribe to object changes, so a rename
+                // made in admin *after* startup was invisible to the cached
+                // entry: `userRenamed` came out false against a stale value
+                // and the next CMS rename destroyed the user's label, with
+                // redoing it by hand the only recovery.
+                await this.refreshChannelName(existing);
                 // Undefined means a branch from before the CMS name was
                 // recorded. Nothing is known about whether the label was ever
                 // the CMS's, so it is left alone and only the record is filled
@@ -445,7 +465,15 @@ class XiboAdapter extends utils.Adapter {
         // Two groups can fold to the same id, so a collision falls back to the
         // CMS id rather than silently overwriting the first one's states.
         let objectId = `displayGroups.${sanitizeId(group.displayGroup)}`;
-        const clash = [...this.groupIndex.values()].some(g => g.objectId === objectId);
+        // Unadopted candidates included: a new group whose name folds onto a
+        // branch still waiting to be claimed would otherwise take it, and the
+        // original group could then be indexed onto the same objectId — one
+        // branch describing one group while commanding another.
+        const taken = new Set([
+            ...[...this.groupIndex.values()].map(g => g.objectId),
+            ...[...this.groupCandidates.values()].flat().map(c => c.objectId),
+        ]);
+        const clash = taken.has(objectId);
         if (clash) {
             objectId = `${objectId}_${group.displayGroupId}`;
         }
@@ -664,7 +692,11 @@ class XiboAdapter extends utils.Adapter {
      *
      */
     private async retireMissingGroups(present: XiboDisplayGroup[]): Promise<void> {
-        if (present.length === 0 && this.groupIndex.size > 0) {
+        // Candidates count as known: on the first refresh after a restart the
+        // index is still empty and everything is a candidate, so counting only
+        // the index made this guard unable to fire exactly when it matters.
+        const known = this.groupIndex.size + this.groupCandidates.size;
+        if (present.length === 0 && known > 0) {
             // Every group disappearing at once is far more likely a changed
             // application scope, or a CMS that answered an empty list, than a
             // real deletion of the whole estate — and zeroing the lot would
@@ -692,6 +724,28 @@ class XiboAdapter extends utils.Adapter {
             );
             await this.zeroGroupStates(entry.objectId);
             this.groupIndex.delete(displayGroupId);
+        }
+
+        // Branches nothing claimed this pass. Every present group has already
+        // been through ensureGroupObject, so whatever is left belongs to a
+        // group the CMS no longer has — typically one deleted while the
+        // instance was stopped, which never reaches the loop above because it
+        // was never indexed. Without this they sat frozen at their
+        // shutdown values for ever, on every subsequent restart, with nothing
+        // logged.
+        for (const [displayGroupId, candidates] of [...this.groupCandidates.entries()]) {
+            if (this.unloaded) {
+                return;
+            }
+            for (const candidate of candidates) {
+                this.log.warn(
+                    `Display group ${displayGroupId} ("${candidate.cmsName ?? candidate.channelName}") is ` +
+                        `not in the CMS. Its states under ${candidate.objectId} are zeroed and will stop ` +
+                        `updating.`,
+                );
+                await this.zeroGroupStates(candidate.objectId);
+            }
+            this.groupCandidates.delete(displayGroupId);
         }
     }
 
