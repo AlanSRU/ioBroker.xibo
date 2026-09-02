@@ -196,3 +196,68 @@ export function sanitizeId(value: string): string {
         .replace(/^_+|_+$/g, "");
     return cleaned.length > 0 ? cleaned : "unnamed";
 }
+
+// ------------------------------------------------------------------- health
+
+/**
+ * Consecutive status-poll failures before `info.connection` goes false.
+ *
+ * Two, so a single timeout or blip does not tell every watchdog the CMS has
+ * gone away, while a real outage is still reported within two poll intervals.
+ */
+export const CONNECTION_FAILURE_THRESHOLD = 2;
+
+export interface HealthInputs {
+    /** Whether a status poll has ever succeeded. */
+    statusEverSucceeded: boolean;
+    /** Consecutive status-poll failures. */
+    statusFailures: number;
+    /** Outstanding status-poll error, if any. */
+    statusError: string | null;
+    /** Outstanding inventory-refresh error, if any. */
+    inventoryError: string | null;
+}
+
+/**
+ * What `info.connection` and `info.lastError` should say.
+ *
+ * Pure and exported so the two rules that were previously wrong can be
+ * pinned. Liveness is the status poll alone: it is the frequent, cheap,
+ * authenticated request that actually answers "is the CMS reachable with our
+ * credentials". A partial inventory failure — a Xibo application scoped
+ * without Layout access gets a permanent 403 on `/layout` — is real and
+ * belongs in `lastError`, but it is not a disconnection. When both pollers
+ * wrote this flag, that 403 made them contradict each other for ever.
+ */
+export function evaluateHealth(inputs: HealthInputs): { connected: boolean; lastError: string } {
+    return {
+        // Never true unproven, and never false on a single blip.
+        connected: inputs.statusEverSucceeded && inputs.statusFailures < CONNECTION_FAILURE_THRESHOLD,
+        // A live status failure is the more urgent of the two, so it wins.
+        lastError: inputs.statusError ?? inputs.inventoryError ?? "",
+    };
+}
+
+/**
+ * The requested duration in seconds, or `fallback` when none was given.
+ *
+ * Validated rather than coerced. `Number("30s")` is `NaN`, and both play
+ * routes treat `NaN` as "no duration given" — so a plausible hand-written
+ * payload like `{"layoutId":41,"duration":"30s"}` used to book an indefinite
+ * event instead of a 30-second one, leaving the layout up until someone
+ * reverted it by hand, while `lastResult` recorded `ok:true` and nothing was
+ * logged. Every other field in that payload was checked; this one was not.
+ */
+export function parseDurationSeconds(value: unknown, fallback: number): number {
+    if (value === undefined || value === null) return fallback;
+    // `Number("")` is 0, not NaN, and 0 here means "until reverted" — so a
+    // blank would quietly become an indefinite play rather than being refused.
+    if (typeof value === "string" && value.trim().length === 0) {
+        throw new Error(`"duration" must be a number of seconds, got ${JSON.stringify(value)}`);
+    }
+    const seconds = Number(value);
+    if (!Number.isFinite(seconds) || seconds < 0) {
+        throw new Error(`"duration" must be a number of seconds, got ${JSON.stringify(value)}`);
+    }
+    return seconds;
+}

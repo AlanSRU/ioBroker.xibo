@@ -6,6 +6,16 @@ import {
 /** `eventTypeId` for a Layout event. The CMS numbers these; 1 is Layout. */
 const EVENT_TYPE_LAYOUT = 1;
 
+/**
+ * How long the CMS's UTC offset is trusted before being read again.
+ *
+ * Short enough that a DST change costs at most one hour of wrongly-booked
+ * events rather than the rest of the instance's uptime, and long enough that
+ * the offset still costs about one request an hour instead of one per
+ * schedule call.
+ */
+const CMS_OFFSET_TTL_MS = 3_600_000;
+
 interface TokenResponse {
     access_token: string;
     expires_in: number;
@@ -26,6 +36,8 @@ export class XiboClient {
     private dayParts: XiboDayPart[] | null = null;
     /** Minutes to add to UTC for the CMS's wall clock, once resolved. */
     private cmsOffsetMinutes: number | null = null;
+    /** When that offset stops being trusted. See {@link cmsUtcOffset}. */
+    private cmsOffsetExpiresAt = 0;
 
     constructor(private readonly config: XiboConfig, private readonly log: AdapterLogger) {
         this.base = config.url.replace(/\/+$/, "");
@@ -249,11 +261,21 @@ export class XiboClient {
      * never plays and nothing reports a problem.
      *
      * `/clock` is the CMS's own answer to "what time do you think it is", which
-     * is exactly the question. Cached, since a timezone does not move under a
-     * running adapter — and a DST change is picked up on the next restart.
+     * is exactly the question. Cached only briefly: the offset saves a round
+     * trip per schedule call, but it is not constant — it moves at every DST
+     * change, and a venue instance is not restarted twice a year on cue. Held
+     * indefinitely, an adapter up since summer still believes the CMS is on
+     * BST in November and books every event an hour out: an hour into the
+     * future in the indefinite case, so the wall does not change until long
+     * after the button was pressed, or an hour into the past for a timed
+     * event, whose window has then already closed and never plays. Both
+     * report `ok` and log nothing, which is the whole reason this method
+     * exists.
      */
     private async cmsUtcOffset(): Promise<number> {
-        if (this.cmsOffsetMinutes !== null) return this.cmsOffsetMinutes;
+        if (this.cmsOffsetMinutes !== null && Date.now() < this.cmsOffsetExpiresAt) {
+            return this.cmsOffsetMinutes;
+        }
 
         const clock = (await this.request("/clock")) as { time?: string } | null;
         const match = /(\d{1,2}):(\d{2})/.exec(clock?.time ?? "");
@@ -265,6 +287,7 @@ export class XiboClient {
                 `timezone is UTC. A timed layout may start or end an hour out.`,
             );
             this.cmsOffsetMinutes = 0;
+            this.cmsOffsetExpiresAt = Date.now() + CMS_OFFSET_TTL_MS;
             return 0;
         }
 
@@ -277,6 +300,7 @@ export class XiboClient {
         // Every real offset is a whole number of quarter hours, so rounding to
         // 15 absorbs both the minute resolution of /clock and a little skew.
         this.cmsOffsetMinutes = Math.round(delta / 15) * 15;
+        this.cmsOffsetExpiresAt = Date.now() + CMS_OFFSET_TTL_MS;
         this.log.debug(`CMS clock is UTC${this.cmsOffsetMinutes >= 0 ? "+" : ""}${this.cmsOffsetMinutes} minutes`);
         return this.cmsOffsetMinutes;
     }

@@ -1,8 +1,8 @@
 import * as utils from "@iobroker/adapter-core";
 import { XiboClient } from "./lib/xibo-client";
 import {
-    CHANNEL_DEFINITIONS, DISPLAY_GROUP_STATE_SUFFIXES, sanitizeId, STATE_DEFINITIONS,
-    XiboConfig, XiboDisplayGroup,
+    CHANNEL_DEFINITIONS, DISPLAY_GROUP_STATE_SUFFIXES, evaluateHealth, parseDurationSeconds,
+    sanitizeId, STATE_DEFINITIONS, XiboConfig, XiboDisplayGroup,
 } from "./lib/xibo-types";
 
 /** Keeps a configured number inside sane bounds, falling back when unusable. */
@@ -31,6 +31,13 @@ class XiboAdapter extends utils.Adapter {
     private unloaded = false;
     /** Retry delay after a failed inventory refresh, doubling to the poll interval. */
     private inventoryRetryMs = 0;
+    /** Consecutive status-poll failures. See {@link publishHealth}. */
+    private statusFailures = 0;
+    /** Whether a status poll has ever succeeded, so the flag is never true unproven. */
+    private statusEverSucceeded = false;
+    /** Outstanding errors, owned one per poller so they cannot overwrite each other. */
+    private statusError: string | null = null;
+    private inventoryError: string | null = null;
     /** Display group id -> where it lives in the object tree. */
     private groupIndex = new Map<number, GroupIndexEntry>();
     private layoutFolderId: number | null = null;
@@ -77,7 +84,8 @@ class XiboAdapter extends utils.Adapter {
 
         if (!config.url || !config.clientId || !config.clientSecret) {
             this.log.error("CMS URL, client id and client secret are all required — configure the instance.");
-            await this.setConnected(false, "Not configured");
+            this.inventoryError = "Not configured";
+            await this.publishHealth();
             return;
         }
 
@@ -202,10 +210,34 @@ class XiboAdapter extends utils.Adapter {
 
     // ------------------------------------------------------------ polling
 
-    private async setConnected(connected: boolean, error?: string): Promise<void> {
+    /**
+     * The single writer of `info.connection` and `info.lastError`.
+     *
+     * Both were previously written by both pollers, which disagreed in two
+     * ways. A single timed-out request — a CMS backup, a proxy reload — flipped
+     * the flag immediately, so every watchdog gating on it fired a disconnect
+     * that cleared 30 seconds later; hence the two-failure requirement. Worse,
+     * the two writers could contradict each other indefinitely: a Xibo
+     * application scoped without Layout access gets a permanent 403 on
+     * `/layout`, so the inventory poll wrote `false` every five minutes and
+     * the status poll wrote `true` 30 seconds later, for ever — an alarm storm
+     * around a flag no script could use.
+     *
+     * So liveness is the status poll alone: it is the frequent, cheap,
+     * authenticated request, and it is the thing that actually answers "is the
+     * CMS reachable with our credentials". A partial inventory failure is real
+     * and belongs in `lastError` and the log, but it is not a disconnection.
+     */
+    private async publishHealth(): Promise<void> {
         if (this.unloaded) return;
+        const { connected, lastError } = evaluateHealth({
+            statusEverSucceeded: this.statusEverSucceeded,
+            statusFailures: this.statusFailures,
+            statusError: this.statusError,
+            inventoryError: this.inventoryError,
+        });
         await this.setState("info.connection", { val: connected, ack: true });
-        if (error !== undefined) await this.setState("info.lastError", { val: error, ack: true });
+        await this.setState("info.lastError", { val: lastError, ack: true });
     }
 
     /** Returns whether the refresh succeeded, so the caller can back off. */
@@ -259,12 +291,16 @@ class XiboAdapter extends utils.Adapter {
             await this.setState("inventory.displayCount", { val: displays.length, ack: true });
             await this.setState("inventory.layoutCount", { val: layouts.length, ack: true });
             await this.setState("info.lastSync", { val: new Date().toISOString(), ack: true });
-            await this.setConnected(true, "");
+            this.inventoryError = null;
+            await this.publishHealth();
             return true;
         } catch (err) {
             if (this.unloaded) return false;
             this.log.error(`Inventory refresh failed: ${(err as Error).message}`);
-            await this.setConnected(false, (err as Error).message);
+            // Recorded and logged, but not treated as a disconnection: the CMS
+            // can be perfectly reachable and still refuse one collection.
+            this.inventoryError = (err as Error).message;
+            await this.publishHealth();
             return false;
         }
     }
@@ -296,11 +332,18 @@ class XiboAdapter extends utils.Adapter {
 
             if (this.unloaded) return;
             await this.setState("inventory.displaysJson", { val: JSON.stringify(displays), ack: true });
-            await this.setConnected(true);
+            this.statusFailures = 0;
+            this.statusEverSucceeded = true;
+            this.statusError = null;
+            await this.publishHealth();
         } catch (err) {
             if (this.unloaded) return;
-            this.log.warn(`Status refresh failed: ${(err as Error).message}`);
-            await this.setConnected(false, (err as Error).message);
+            this.statusFailures++;
+            this.statusError = (err as Error).message;
+            this.log.warn(
+                `Status refresh failed (${this.statusFailures} in a row): ${(err as Error).message}`,
+            );
+            await this.publishHealth();
         }
     }
 
@@ -344,9 +387,13 @@ class XiboAdapter extends utils.Adapter {
         return value;
     }
 
+    /** The requested duration in seconds, or the configured default. */
+    private durationSeconds(payload: Record<string, unknown>): number {
+        return parseDurationSeconds(payload.duration, this.settings.defaultChangeDuration);
+    }
+
     private async handleCommand(command: string, value: unknown): Promise<void> {
         const payload = command === "refresh" ? {} : this.parsePayload(value);
-        const duration = Number(payload.duration ?? this.settings.defaultChangeDuration);
 
         switch (command) {
             case "refresh": {
@@ -368,7 +415,7 @@ class XiboAdapter extends utils.Adapter {
                 await this.playLayout(
                     this.requireNumber(payload, "displayGroupId"),
                     this.requireNumber(payload, "layoutId"),
-                    duration,
+                    this.durationSeconds(payload),
                 );
                 break;
 
@@ -386,7 +433,7 @@ class XiboAdapter extends utils.Adapter {
                 await this.client!.overlayLayout(
                     this.requireNumber(payload, "displayGroupId"),
                     this.requireNumber(payload, "layoutId"),
-                    duration,
+                    this.durationSeconds(payload),
                 );
                 break;
 

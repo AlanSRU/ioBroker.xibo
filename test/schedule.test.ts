@@ -200,6 +200,49 @@ describe("scheduleLayout", () => {
     });
 });
 
+describe("the CMS clock offset", () => {
+    const clockCalls = (calls: Call[]): number => calls.filter((c) => c.url.includes("/api/clock")).length;
+
+    it("is read once, not per schedule call", async () => {
+        const cms = stubCms();
+        try {
+            const client = new XiboClient(CONFIG, SILENT);
+            await client.scheduleLayout(5, 39, 10);
+            await client.scheduleLayout(5, 39, 10);
+            expect(clockCalls(cms.calls)).to.equal(1);
+        } finally {
+            cms.restore();
+        }
+    });
+
+    it("is read again once it goes stale, so a DST change cannot strand it", async () => {
+        // Held for the life of the instance, an adapter up since summer still
+        // believes the CMS is on BST in November and books every event an hour
+        // out: an hour ahead in the indefinite case, so the wall does not
+        // change until long after the button was pressed, or an hour behind
+        // for a timed event, whose window has already closed and never plays.
+        // Both report ok and log nothing. A venue instance is not restarted
+        // twice a year on cue.
+        const cms = stubCms();
+        const realNow = Date.now;
+        try {
+            const client = new XiboClient(CONFIG, SILENT);
+            await client.scheduleLayout(5, 39, 10);
+            expect(clockCalls(cms.calls)).to.equal(1);
+
+            // Two hours later. Only Date.now is moved, so the offset the stub
+            // implies is unchanged and this measures the cache, not the maths.
+            const shifted = realNow() + 2 * 3_600_000;
+            Date.now = () => shifted;
+            await client.scheduleLayout(5, 39, 10);
+            expect(clockCalls(cms.calls)).to.equal(2);
+        } finally {
+            Date.now = realNow;
+            cms.restore();
+        }
+    });
+});
+
 describe("clearScheduledLayouts", () => {
     it("leaves events it does not own", async () => {
         const cms = stubCms({ events: [{ eventId: 27, isPriority: 0 }, { eventId: 28, isPriority: 1 }] });
