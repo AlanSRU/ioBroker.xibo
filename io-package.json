@@ -1,20 +1,33 @@
 {
   "common": {
     "name": "xibo",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "news": {
+      "0.2.0": {
+        "en": "Layout changes now work on Arexibo and gaxibo players, which ignore the CMS's changeLayout XMR action: the new schedule mode books a priority schedule event and asks the display group to collect. Set \"How a layout reaches the player\" to the XMR action for the official Xibo player.",
+        "de": "Layoutänderungen funktionieren jetzt auf Arexibo- und Gaxibo-Playern, die die XMR-Aktion „changeLayout“ des CMS ignorieren: Der neue Zeitplanmodus bucht ein Prioritätsplanereignis und fordert die Anzeigegruppe zum Sammeln auf. Legen Sie „Wie ein Layout den Spieler erreicht“ auf die XMR-Aktion für den offiziellen Xibo-Spieler fest.",
+        "ru": "Изменения макета теперь работают на проигрывателях Arexibo и gaxibo, которые игнорируют действие CMS ChangeLayout XMR: новый режим расписания резервирует приоритетное событие расписания и просит группу отображения собрать данные. Установите «Как макет достигает игрока» для действия XMR для официального проигрывателя Xibo.",
+        "pt": "As alterações de layout agora funcionam em players Arexibo e gaxibo, que ignoram a ação changeLayout XMR do CMS: o novo modo de agendamento reserva um evento de agendamento prioritário e solicita ao grupo de exibição a coleta. Defina \"Como um layout chega ao jogador\" para a ação XMR do jogador Xibo oficial.",
+        "nl": "Lay-outwijzigingen werken nu op Arexibo- en gaxibo-spelers, die de changeLayout XMR-actie van het CMS negeren: de nieuwe planningsmodus boekt een prioriteitsschema-evenement en vraagt ​​de displaygroep om te verzamelen. Stel \"Hoe een lay-out de speler bereikt\" in op de XMR-actie voor de officiële Xibo-speler.",
+        "fr": "Les modifications de mise en page fonctionnent désormais sur les lecteurs Arexibo et Gaxibo, qui ignorent l'action changeLayout XMR du CMS : le nouveau mode de planification réserve un événement de planification prioritaire et demande au groupe d'affichage de le collecter. Définissez « Comment une mise en page atteint le joueur » sur l'action XMR pour le lecteur Xibo officiel.",
+        "it": "Le modifiche al layout ora funzionano sui lettori Arexibo e gaxibo, che ignorano l'azione changeLayout XMR del CMS: la nuova modalità di pianificazione prenota un evento di pianificazione prioritario e chiede al gruppo di visualizzazione di raccoglierlo. Imposta \"Come un layout raggiunge il giocatore\" sull'azione XMR per il giocatore Xibo ufficiale.",
+        "es": "Los cambios de diseño ahora funcionan en los reproductores Arexibo y Gaxibo, que ignoran la acción changeLayout XMR del CMS: el nuevo modo de programación reserva un evento de programación prioritario y solicita al grupo de visualización que lo recopile. Establezca \"Cómo llega un diseño al reproductor\" en la acción XMR para el reproductor oficial Xibo.",
+        "pl": "Zmiany układu działają teraz na odtwarzaczach Arexibo i gaxibo, które ignorują akcję XMR zmiany układu CMS: nowy tryb harmonogramu rezerwuje priorytetowe wydarzenie w harmonogramie i prosi grupę wyświetlającą o zebranie. Ustaw „Jak układ dociera do gracza” na akcję XMR dla oficjalnego odtwarzacza Xibo.",
+        "uk": "Зміни макета тепер працюють на програвачах Arexibo та gaxibo, які ігнорують дію CMS changeLayout XMR: новий режим розкладу записує пріоритетну подію розкладу та просить групу відображення зібрати. Установіть «Як макет досягає гравця» для дії XMR для офіційного плеєра Xibo.",
+        "zh-cn": "布局更改现在适用于 Arexibo 和 gaxibo 播放器，它们忽略 CMS 的 ChangeLayout XMR 操作：新的计划模式预订优先计划事件并要求显示组收集。将“布局如何到达玩家”设置为官方 Xibo 玩家的 XMR 操作。"
+      },
       "0.1.0": {
         "en": "Initial release: display group inventory, layout inventory, and change layout / revert to schedule commands.",
-        "de": "Erste Version: Bestandsliste der Anzeigegruppen und Layouts sowie Befehle zum Layoutwechsel und zur R\u00fcckkehr zum Zeitplan.",
-        "ru": "\u041f\u0435\u0440\u0432\u044b\u0439 \u0432\u044b\u043f\u0443\u0441\u043a: \u0441\u043f\u0438\u0441\u043e\u043a \u0433\u0440\u0443\u043f\u043f \u0434\u0438\u0441\u043f\u043b\u0435\u0435\u0432 \u0438 \u043c\u0430\u043a\u0435\u0442\u043e\u0432, \u043a\u043e\u043c\u0430\u043d\u0434\u044b \u0441\u043c\u0435\u043d\u044b \u043c\u0430\u043a\u0435\u0442\u0430 \u0438 \u0432\u043e\u0437\u0432\u0440\u0430\u0442\u0430 \u043a \u0440\u0430\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u044e.",
-        "pt": "Primeira vers\u00e3o: invent\u00e1rio de grupos de ecr\u00e3s e layouts, e comandos para mudar de layout e voltar ao agendamento.",
+        "de": "Erste Version: Bestandsliste der Anzeigegruppen und Layouts sowie Befehle zum Layoutwechsel und zur Rückkehr zum Zeitplan.",
+        "ru": "Первый выпуск: список групп дисплеев и макетов, команды смены макета и возврата к расписанию.",
+        "pt": "Primeira versão: inventário de grupos de ecrãs e layouts, e comandos para mudar de layout e voltar ao agendamento.",
         "nl": "Eerste versie: inventaris van schermgroepen en lay-outs, en opdrachten voor lay-outwissel en terug naar schema.",
-        "fr": "Premi\u00e8re version : inventaire des groupes d'\u00e9crans et des mises en page, et commandes de changement et de retour \u00e0 la programmation.",
+        "fr": "Première version : inventaire des groupes d'écrans et des mises en page, et commandes de changement et de retour à la programmation.",
         "it": "Prima versione: inventario di gruppi di display e layout, e comandi per cambiare layout e tornare alla programmazione.",
-        "es": "Primera versi\u00f3n: inventario de grupos de pantallas y dise\u00f1os, y comandos para cambiar de dise\u00f1o y volver a la programaci\u00f3n.",
-        "pl": "Pierwsza wersja: lista grup wy\u015bwietlaczy i uk\u0142ad\u00f3w oraz polecenia zmiany uk\u0142adu i powrotu do harmonogramu.",
-        "uk": "\u041f\u0435\u0440\u0448\u0438\u0439 \u0432\u0438\u043f\u0443\u0441\u043a: \u043f\u0435\u0440\u0435\u043b\u0456\u043a \u0433\u0440\u0443\u043f \u0434\u0438\u0441\u043f\u043b\u0435\u0457\u0432 \u0456 \u043c\u0430\u043a\u0435\u0442\u0456\u0432, \u043a\u043e\u043c\u0430\u043d\u0434\u0438 \u0437\u043c\u0456\u043d\u0438 \u043c\u0430\u043a\u0435\u0442\u0430 \u0442\u0430 \u043f\u043e\u0432\u0435\u0440\u043d\u0435\u043d\u043d\u044f \u0434\u043e \u0440\u043e\u0437\u043a\u043b\u0430\u0434\u0443.",
-        "zh-cn": "\u9996\u4e2a\u7248\u672c\uff1a\u663e\u793a\u7ec4\u548c\u5e03\u5c40\u6e05\u5355\uff0c\u4ee5\u53ca\u5207\u6362\u5e03\u5c40\u548c\u6062\u590d\u8ba1\u5212\u7684\u547d\u4ee4\u3002"
+        "es": "Primera versión: inventario de grupos de pantallas y diseños, y comandos para cambiar de diseño y volver a la programación.",
+        "pl": "Pierwsza wersja: lista grup wyświetlaczy i układów oraz polecenia zmiany układu i powrotu do harmonogramu.",
+        "uk": "Перший випуск: перелік груп дисплеїв і макетів, команди зміни макета та повернення до розкладу.",
+        "zh-cn": "首个版本：显示组和布局清单，以及切换布局和恢复计划的命令。"
       }
     },
     "titleLang": {
@@ -28,20 +41,20 @@
       "es": "Xibo Digital Signage",
       "pl": "Xibo Digital Signage",
       "uk": "Xibo Digital Signage",
-      "zh-cn": "Xibo \u6570\u5b57\u6807\u724c"
+      "zh-cn": "Xibo 数字标牌"
     },
     "desc": {
       "en": "Play a layout on a Xibo display group and revert it to schedule, plus display and layout inventory.",
-      "de": "Ein Layout auf einer Xibo-Anzeigegruppe abspielen und zum Zeitplan zur\u00fcckkehren, mit Bestandsliste der Anzeigen und Layouts.",
-      "ru": "\u0412\u043e\u0441\u043f\u0440\u043e\u0438\u0437\u0432\u0435\u0434\u0435\u043d\u0438\u0435 \u043c\u0430\u043a\u0435\u0442\u0430 \u043d\u0430 \u0433\u0440\u0443\u043f\u043f\u0435 \u0434\u0438\u0441\u043f\u043b\u0435\u0435\u0432 Xibo \u0438 \u0432\u043e\u0437\u0432\u0440\u0430\u0442 \u043a \u0440\u0430\u0441\u043f\u0438\u0441\u0430\u043d\u0438\u044e, \u0430 \u0442\u0430\u043a\u0436\u0435 \u0441\u043f\u0438\u0441\u043e\u043a \u0434\u0438\u0441\u043f\u043b\u0435\u0435\u0432 \u0438 \u043c\u0430\u043a\u0435\u0442\u043e\u0432.",
-      "pt": "Reproduzir um layout num grupo de ecr\u00e3s Xibo e voltar ao agendamento, com invent\u00e1rio de ecr\u00e3s e layouts.",
+      "de": "Ein Layout auf einer Xibo-Anzeigegruppe abspielen und zum Zeitplan zurückkehren, mit Bestandsliste der Anzeigen und Layouts.",
+      "ru": "Воспроизведение макета на группе дисплеев Xibo и возврат к расписанию, а также список дисплеев и макетов.",
+      "pt": "Reproduzir um layout num grupo de ecrãs Xibo e voltar ao agendamento, com inventário de ecrãs e layouts.",
       "nl": "Speel een lay-out af op een Xibo-schermgroep en keer terug naar het schema, plus inventaris van schermen en lay-outs.",
-      "fr": "Diffuser une mise en page sur un groupe d'\u00e9crans Xibo et revenir \u00e0 la programmation, avec l'inventaire des \u00e9crans et des mises en page.",
+      "fr": "Diffuser une mise en page sur un groupe d'écrans Xibo et revenir à la programmation, avec l'inventaire des écrans et des mises en page.",
       "it": "Riproduci un layout su un gruppo di display Xibo e torna alla programmazione, con inventario di display e layout.",
-      "es": "Reproducir un dise\u00f1o en un grupo de pantallas Xibo y volver a la programaci\u00f3n, con inventario de pantallas y dise\u00f1os.",
-      "pl": "Odtw\u00f3rz uk\u0142ad na grupie wy\u015bwietlaczy Xibo i wr\u00f3\u0107 do harmonogramu, wraz z list\u0105 wy\u015bwietlaczy i uk\u0142ad\u00f3w.",
-      "uk": "\u0412\u0456\u0434\u0442\u0432\u043e\u0440\u0435\u043d\u043d\u044f \u043c\u0430\u043a\u0435\u0442\u0430 \u043d\u0430 \u0433\u0440\u0443\u043f\u0456 \u0434\u0438\u0441\u043f\u043b\u0435\u0457\u0432 Xibo \u0442\u0430 \u043f\u043e\u0432\u0435\u0440\u043d\u0435\u043d\u043d\u044f \u0434\u043e \u0440\u043e\u0437\u043a\u043b\u0430\u0434\u0443, \u0430 \u0442\u0430\u043a\u043e\u0436 \u043f\u0435\u0440\u0435\u043b\u0456\u043a \u0434\u0438\u0441\u043f\u043b\u0435\u0457\u0432 \u0456 \u043c\u0430\u043a\u0435\u0442\u0456\u0432.",
-      "zh-cn": "\u5728 Xibo \u663e\u793a\u7ec4\u4e0a\u64ad\u653e\u5e03\u5c40\u5e76\u6062\u590d\u8ba1\u5212\uff0c\u5e76\u63d0\u4f9b\u663e\u793a\u5668\u548c\u5e03\u5c40\u6e05\u5355\u3002"
+      "es": "Reproducir un diseño en un grupo de pantallas Xibo y volver a la programación, con inventario de pantallas y diseños.",
+      "pl": "Odtwórz układ na grupie wyświetlaczy Xibo i wróć do harmonogramu, wraz z listą wyświetlaczy i układów.",
+      "uk": "Відтворення макета на групі дисплеїв Xibo та повернення до розкладу, а також перелік дисплеїв і макетів.",
+      "zh-cn": "在 Xibo 显示组上播放布局并恢复计划，并提供显示器和布局清单。"
     },
     "authors": [
       "Alan Paris"
@@ -91,7 +104,9 @@
     "statusPollInterval": 30000,
     "requestTimeout": 30000,
     "layoutFolder": "",
-    "defaultChangeDuration": 0
+    "defaultChangeDuration": 0,
+    "layoutPlayMode": "schedule",
+    "schedulePriority": 10
   },
   "objects": [],
   "instanceObjects": [

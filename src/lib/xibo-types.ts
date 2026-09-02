@@ -6,6 +6,22 @@
  * `/api/authorize/access_token`, `client_credentials` grant.
  */
 
+/**
+ * How a "play this layout" request reaches a player.
+ *
+ * `action` posts the CMS's own `changeLayout` action. The CMS delivers it over
+ * XMR and a player that implements that message applies it instantly — but
+ * one that does not simply logs it and carries on, while the CMS still reports
+ * success. Our gaxibo/Arexibo players are in the second category, so nothing
+ * moves and nothing fails.
+ *
+ * `schedule` writes a priority schedule event instead and asks the group to
+ * collect. Every player honours its schedule, so this works regardless of
+ * which XMR actions the player implements. It costs a collect round trip —
+ * seconds rather than instant — and leaves an event in the CMS schedule.
+ */
+export type LayoutPlayMode = "action" | "schedule";
+
 export interface XiboConfig {
     /** CMS root without the /api suffix, e.g. https://signage.internal */
     url: string;
@@ -24,6 +40,17 @@ export interface XiboConfig {
     layoutFolder: string;
     /** Seconds a changeLayout stays in effect; 0 means until reverted. */
     defaultChangeDuration: number;
+    /** How a layout request reaches the player. See {@link LayoutPlayMode}. */
+    layoutPlayMode: LayoutPlayMode;
+    /**
+     * Priority of the schedule events this adapter creates, in `schedule` mode.
+     *
+     * Doubles as the marker for what the adapter owns: a layout event at this
+     * priority on a group it drives is treated as its own and replaced on the
+     * next request. It must therefore be a priority nothing else uses, and
+     * must be above anything it needs to override.
+     */
+    schedulePriority: number;
 }
 
 export interface AdapterLogger {
@@ -58,11 +85,34 @@ export interface XiboDisplay {
 export interface XiboLayout {
     layoutId: number;
     layout: string;
+    /**
+     * The single-layout campaign this layout is scheduled by.
+     *
+     * A schedule event names a campaign, never a layout, so this is what has
+     * to be sent when scheduling — a layoutId in its place quietly schedules
+     * whichever layout happens to own that campaign id.
+     */
+    campaignId?: number;
     width: number;
     height: number;
     folderId?: number;
     duration?: number;
     publishedStatusId?: number;
+}
+
+export interface XiboDayPart {
+    dayPartId: number;
+    name: string;
+    isAlways: number;
+    isCustom: number;
+}
+
+export interface XiboScheduleEvent {
+    eventId: number;
+    eventTypeId: number;
+    campaignId: number;
+    isPriority: number;
+    dayPartId: number;
 }
 
 export interface XiboFolder {

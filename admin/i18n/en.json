@@ -19,5 +19,12 @@
     "requestTimeoutLabel": "Request timeout (ms)",
     "requestTimeoutHelp": "How long to wait for the CMS before giving up on a request",
     "urlPlaceholder": "https://signage.internal",
-    "layoutFolderPlaceholder": "Pixelmabob"
+    "layoutFolderPlaceholder": "Pixelmabob",
+    "playbackHeader": "Layout playback",
+    "layoutPlayModeLabel": "How a layout reaches the player",
+    "layoutPlayModeHelp": "Schedule works on any player and takes a few seconds. The XMR action is instant but is silently ignored by players that do not implement it, including Arexibo and gaxibo.",
+    "layoutPlayModeSchedule": "Schedule a priority event, then collect (works everywhere)",
+    "layoutPlayModeAction": "XMR changeLayout action (official Xibo player only)",
+    "schedulePriorityLabel": "Schedule priority",
+    "schedulePriorityHelp": "Priority of the events this adapter creates, and the marker for the ones it owns and replaces. Must be higher than any other event it should override, and used by nothing else."
 }

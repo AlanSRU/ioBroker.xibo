@@ -60,6 +60,12 @@ class XiboAdapter extends utils.Adapter {
             requestTimeout: clamp(c.requestTimeout, 2_000, 120_000, 30_000),
             layoutFolder: (c.layoutFolder ?? "").trim(),
             defaultChangeDuration: Math.max(0, Number(c.defaultChangeDuration) || 0),
+            // Defaults to `schedule` because it is the mode that works on any
+            // player: a schedule is honoured universally, whereas the XMR
+            // action is silently ignored by players that do not implement it.
+            // `action` is the optimisation, not the safe choice.
+            layoutPlayMode: c.layoutPlayMode === "action" ? "action" : "schedule",
+            schedulePriority: clamp(c.schedulePriority, 1, 1000, 10),
         };
     }
 
@@ -359,7 +365,7 @@ class XiboAdapter extends utils.Adapter {
             }
 
             case "changeLayout":
-                await this.client!.changeLayout(
+                await this.playLayout(
                     this.requireNumber(payload, "displayGroupId"),
                     this.requireNumber(payload, "layoutId"),
                     duration,
@@ -367,6 +373,16 @@ class XiboAdapter extends utils.Adapter {
                 break;
 
             case "overlayLayout":
+                // Refused rather than attempted: `schedule` mode exists because
+                // the players in use ignore XMR actions, and those same players
+                // render no overlay at all, by either route. Posting the action
+                // would report success and show nothing.
+                if (this.settings.layoutPlayMode === "schedule") {
+                    throw new Error(
+                        "overlayLayout needs a player that implements XMR overlays. This instance is in " +
+                        "schedule mode, which exists for players that do not — use changeLayout instead.",
+                    );
+                }
                 await this.client!.overlayLayout(
                     this.requireNumber(payload, "displayGroupId"),
                     this.requireNumber(payload, "layoutId"),
@@ -375,7 +391,7 @@ class XiboAdapter extends utils.Adapter {
                 break;
 
             case "revertToSchedule":
-                await this.client!.revertToSchedule(this.requireNumber(payload, "displayGroupId"));
+                await this.revertGroup(this.requireNumber(payload, "displayGroupId"));
                 break;
 
             case "collectNow":
@@ -407,20 +423,55 @@ class XiboAdapter extends utils.Adapter {
             if (!Number.isFinite(layoutId) || layoutId <= 0) {
                 throw new Error(`playLayoutId must be a positive layout id, got ${String(value)}`);
             }
-            await this.client!.changeLayout(entry.displayGroupId, layoutId, this.settings.defaultChangeDuration);
+            await this.playLayout(entry.displayGroupId, layoutId, this.settings.defaultChangeDuration);
             await this.setState(local, { val: layoutId, ack: true });
             await this.recordResult("playLayoutId", { displayGroupId: entry.displayGroupId, layoutId }, true);
             return;
         }
 
         if (suffix === "revert") {
-            await this.client!.revertToSchedule(entry.displayGroupId);
+            await this.revertGroup(entry.displayGroupId);
             await this.setState(local, { val: false, ack: true });
             await this.recordResult("revert", { displayGroupId: entry.displayGroupId }, true);
             return;
         }
 
         this.log.warn(`Write to "${local}" is not a command`);
+    }
+
+    /**
+     * Plays a layout by whichever route this instance is configured for.
+     *
+     * One place decides, so the command state, the per-group `playLayoutId`
+     * write and anything added later cannot drift into using different
+     * mechanisms.
+     */
+    private async playLayout(displayGroupId: number, layoutId: number, duration: number): Promise<void> {
+        const { layoutPlayMode, schedulePriority } = this.settings;
+        if (layoutPlayMode === "action") {
+            await this.client!.changeLayout(displayGroupId, layoutId, duration);
+            return;
+        }
+        await this.client!.scheduleLayout(displayGroupId, layoutId, schedulePriority, duration);
+    }
+
+    /**
+     * Returns a display group to its own schedule.
+     *
+     * In `schedule` mode the thing overriding that schedule is the adapter's
+     * own priority event, so reverting means deleting it. The XMR revert action
+     * would leave it in place and the sign would stay up — a revert that
+     * reports success and changes nothing.
+     */
+    private async revertGroup(displayGroupId: number): Promise<void> {
+        const { layoutPlayMode, schedulePriority } = this.settings;
+        if (layoutPlayMode === "action") {
+            await this.client!.revertToSchedule(displayGroupId);
+            return;
+        }
+        const removed = await this.client!.clearScheduledLayouts(displayGroupId, schedulePriority);
+        await this.client!.collectNow(displayGroupId);
+        this.log.debug(`revert: removed ${removed} scheduled layout(s) from display group ${displayGroupId}`);
     }
 
     private async recordResult(command: string, payload: unknown, ok: boolean, error?: string): Promise<void> {

@@ -42,6 +42,27 @@
             "max": 86400
         },
 
+        "_playbackHeader": { "type": "header", "text": "playbackHeader", "size": 2 },
+        "layoutPlayMode": {
+            "type": "select",
+            "label": "layoutPlayModeLabel",
+            "help": "layoutPlayModeHelp",
+            "options": [
+                { "label": "layoutPlayModeSchedule", "value": "schedule" },
+                { "label": "layoutPlayModeAction", "value": "action" }
+            ],
+            "xs": 12, "sm": 12, "md": 6, "lg": 6, "xl": 6
+        },
+        "schedulePriority": {
+            "type": "number",
+            "label": "schedulePriorityLabel",
+            "help": "schedulePriorityHelp",
+            "xs": 12, "sm": 12, "md": 6, "lg": 6, "xl": 6,
+            "min": 1,
+            "max": 1000,
+            "hidden": "data.layoutPlayMode === 'action'"
+        },
+
         "_pollHeader": { "type": "header", "text": "pollHeader", "size": 2 },
         "inventoryPollInterval": {
             "type": "number",

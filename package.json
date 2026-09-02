@@ -1,6 +1,6 @@
 {
   "name": "iobroker.xibo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Control Xibo digital signage displays: change the layout playing on a display group, revert to schedule, and read display status.",
   "author": {
     "name": "Alan Paris"

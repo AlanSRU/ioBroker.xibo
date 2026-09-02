@@ -61,11 +61,58 @@ clears the state, so an identical follow-up request still triggers.
 |---|---|
 | `refresh` | boolean button |
 | `changeLayout` | `{displayGroupId, layoutId, duration?}` |
-| `overlayLayout` | `{displayGroupId, layoutId, duration?}` |
+| `overlayLayout` | `{displayGroupId, layoutId, duration?}` — refused in `schedule` mode |
 | `revertToSchedule` | `{displayGroupId}` |
 | `collectNow` | `{displayGroupId}` |
 
 `commands.lastResult` records `{ok, command, payload, error?, ts}`.
+
+## How a layout reaches the player
+
+**Setting: "How a layout reaches the player"** — `schedule` (default) or `action`.
+
+The CMS's own `changeLayout` action is delivered over XMR and applied instantly
+— by a player that implements that message. **Arexibo and gaxibo do not.** The
+action arrives, is logged as an unsupported XMR action and dropped, while the
+CMS reports success. Nothing moves and nothing fails, which is the worst way for
+this to break.
+
+So `schedule` mode does not use the action. It:
+
+1. resolves the layout's **campaign** (the schedule names a campaign, never a
+   layout);
+2. deletes the event it created last time on that display group;
+3. creates one "always" layout event at `schedulePriority`, which outranks the
+   group's ordinary schedule;
+4. sends `collectNow` — the one XMR action these players *do* implement, which
+   is what makes the change land in seconds rather than at the next poll.
+
+A `duration` becomes a custom day part bounded by `toDt`, which the player
+enforces locally, so the sign comes down on time without hearing from the CMS
+again.
+
+`revertToSchedule` in this mode **deletes that event** rather than posting the
+XMR revert action, because the event is the thing overriding the schedule.
+
+Two constraints follow:
+
+- **`schedulePriority` must be a priority nothing else uses.** The CMS gives a
+  schedule event no name or tag to stamp, so the priority is the only marker
+  available for "the adapter owns this one and may replace it".
+- **`overlayLayout` is refused in `schedule` mode**, rather than attempted.
+  These players render no overlay by either route, so posting the action would
+  report success and show nothing.
+
+Pick `action` only for the official Xibo player, where it is instant.
+
+### `currentLayout` lags
+
+`displayGroups.<group>.currentLayout` is what the *player* last reported, and
+gaxibo reports it from a field its GUI thread updates asynchronously — so the
+collect that applies a new layout usually still reports the previous one.
+Measured at anything from 4 seconds to 5 minutes behind. It is a status field,
+not a confirmation that a command worked, and binding a deck's active highlight
+to it will light the wrong key.
 
 ## Notes
 
@@ -83,6 +130,23 @@ in per-project subfolders — which is how Pixelmabob files them. The adapter wa
 the folder tree and filters against it.
 
 ## Changelog
+
+### 0.2.0
+
+- **Layout changes now reach Arexibo and gaxibo players.** Those players do not
+  implement the CMS's `changeLayout` XMR action — it arrives, is logged as
+  unsupported and dropped, while the CMS reports success — so a layout change
+  did nothing and nothing failed. The new default `schedule` mode books a
+  priority schedule event and sends `collectNow` instead, which every player
+  honours. Verified through to a live display.
+- `layoutPlayMode` setting: `schedule` (default, works on any player) or
+  `action` (instant, official Xibo player only).
+- `schedulePriority` setting, which is also the marker for the events the
+  adapter owns and may replace.
+- `revertToSchedule` deletes the adapter's own schedule event in `schedule`
+  mode, rather than posting an XMR action the player would ignore.
+- `overlayLayout` is refused in `schedule` mode rather than silently doing
+  nothing, since those players render no overlay by either route.
 
 ### 0.1.0
 
