@@ -286,7 +286,17 @@ class XiboAdapter extends utils.Adapter {
                     `keeping its branch at ${existing.objectId} so existing bindings keep working.`,
                 );
                 existing.name = group.displayGroup;
-                await this.extendObjectAsync(existing.objectId, { common: { name: group.displayGroup } });
+                // The full object, not just `common`: extendObject creates when
+                // the object is missing rather than failing, so a partial one
+                // would create a typeless channel with no displayGroupId for
+                // seedGroupIndex to find next time. The merge is
+                // `extend(true, old, new)`, so naming `native` here cannot
+                // lose anything already on an existing object.
+                await this.extendObjectAsync(existing.objectId, {
+                    type: "channel",
+                    common: { name: group.displayGroup },
+                    native: { displayGroupId: group.displayGroupId },
+                });
             }
             return existing;
         }
@@ -488,6 +498,20 @@ class XiboAdapter extends utils.Adapter {
      * adopts the same branch again.
      */
     private async retireMissingGroups(present: XiboDisplayGroup[]): Promise<void> {
+        if (present.length === 0 && this.groupIndex.size > 0) {
+            // Every group disappearing at once is far more likely a changed
+            // application scope, or a CMS that answered an empty list, than a
+            // real deletion of the whole estate — and zeroing the lot would
+            // take every deck button down with it.
+            this.reportCondition(
+                "displayGroups",
+                `The CMS reported no display groups, but ${this.groupIndex.size} are known. ` +
+                `Keeping them rather than retiring all of them; check the application's permissions.`,
+            );
+            return;
+        }
+        this.reportCondition("displayGroups", null);
+
         const live = new Set(present.map((g) => g.displayGroupId));
         for (const [displayGroupId, entry] of [...this.groupIndex.entries()]) {
             if (live.has(displayGroupId)) continue;
