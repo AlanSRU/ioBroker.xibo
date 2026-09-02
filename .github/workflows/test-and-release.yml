@@ -52,6 +52,11 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
       - run: npm ci
+      # The adapter's own suites, run directly rather than through
+      # ioBroker/testing-action-adapter (W3015): that action runs `npm test`
+      # for the unit suite and `npm run test:integration` for the integration
+      # one on a single OS, whereas the point of this job is the OS matrix.
+      # The integration suite has its own job below.
       - run: npm run build
       - run: npm test
 

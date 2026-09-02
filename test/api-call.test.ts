@@ -174,3 +174,56 @@ describe("call: parameter encoding", () => {
         }
     });
 });
+
+describe("call: no value is silently stringified into nonsense", () => {
+    /**
+     * `String({})` is `"[object Object]"` and a form body is just text, so an
+     * object parameter used to be posted to the CMS as that literal — a
+     * placeholder standing in for whatever the caller actually meant.
+     */
+    const objects: Array<[string, unknown]> = [
+        ["a plain object", { id: 2 }],
+        ["a nested array", [[1, 2]]],
+        ["a Date", new Date()],
+        ["null inside an array", [null]],
+    ];
+
+    for (const [label, value] of objects) {
+        it(`refuses ${label} as a parameter, and sends nothing`, async () => {
+            const cms = stub();
+            try {
+                await client().call("POST", "/schedule", { dayPart: value });
+                expect.fail(`${label} was accepted`);
+            } catch (err) {
+                expect((err as Error).message).to.match(/must be a string, number or boolean/);
+                expect(apiCalls(cms.calls)).to.have.length(0);
+            } finally {
+                cms.restore();
+            }
+        });
+    }
+
+    it("still accepts the scalars the CMS actually takes", async () => {
+        const cms = stub();
+        try {
+            await client().call("POST", "/schedule", { a: "x", b: 2, c: true, d: [1, "two"] });
+            const body = apiCalls(cms.calls)[0].body;
+            expect(body.a).to.equal("x");
+            expect(body.b).to.equal("2");
+            expect(body.c).to.equal("true");
+            // Arrays still spread into the repeated key[] form.
+            expect(body["d[]"]).to.equal("1,two");
+        } finally {
+            cms.restore();
+        }
+    });
+
+    it("names the offending key, so a caller can find it", async () => {
+        try {
+            await client().call("POST", "/schedule", { ok: 1, dayPartId: { id: 2 } });
+            expect.fail("accepted");
+        } catch (err) {
+            expect((err as Error).message).to.contain("dayPartId");
+        }
+    });
+});

@@ -1,8 +1,13 @@
 # Consumed by iobroker-bot-orga/action-automerge-dependabot. `update_type` is
 # hierarchical, so semver:minor includes patch. Majors never auto-merge.
+#
+# Development dependencies are held to patch rather than minor: a TypeScript or
+# @iobroker/testing minor can introduce stricter checks that fail the build, and
+# an auto-merge lands it on main before anyone looks. Patches are safe enough to
+# be worth the noise reduction.
 - match:
     dependency_type: production
     update_type: "semver:patch"
 - match:
     dependency_type: development
-    update_type: "semver:minor"
+    update_type: "semver:patch"

@@ -9,6 +9,21 @@ import {
     COLLECTIONS, CollectionDefinition, collectionRows, collectionStateIds, selectedCollections,
 } from "./lib/xibo-collections";
 
+/**
+ * A string field out of a caller's payload.
+ *
+ * `String({})` is `"[object Object]"`, so coercing a `method` or `path` that
+ * arrived as an object produced a request the caller never asked for rather
+ * than an error naming the field.
+ */
+function requireText(value: unknown, field: string, fallback: string): string {
+    if (value === undefined || value === null) return fallback;
+    if (typeof value !== "string") {
+        throw new Error(`"${field}" must be a string, got ${Array.isArray(value) ? "an array" : typeof value}`);
+    }
+    return value;
+}
+
 /** Keeps a configured number inside sane bounds, falling back when unusable. */
 function clamp(value: unknown, min: number, max: number, fallback: number): number {
     const n = Number(value);
@@ -489,8 +504,8 @@ class XiboAdapter extends utils.Adapter {
             : {}) as { method?: unknown; path?: unknown; params?: unknown };
 
         try {
-            const method = String(message.method ?? "GET");
-            const path = String(message.path ?? "");
+            const method = requireText(message.method, "method", "GET");
+            const path = requireText(message.path, "path", "");
             const params = (typeof message.params === "object" && message.params !== null
                 ? message.params
                 : {}) as Record<string, unknown>;
@@ -614,8 +629,8 @@ class XiboAdapter extends utils.Adapter {
                     ? (payload.params as Record<string, unknown>)
                     : {};
                 const result = await this.client!.call(
-                    String(payload.method ?? "GET"),
-                    String(payload.path ?? ""),
+                    requireText(payload.method, "method", "GET"),
+                    requireText(payload.path, "path", ""),
                     params,
                 );
                 await this.recordResult(command, payload, true, undefined, result);

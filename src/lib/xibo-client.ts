@@ -142,9 +142,9 @@ export class XiboClient {
         for (const [key, value] of Object.entries(params)) {
             if (value === undefined || value === null) continue;
             if (Array.isArray(value)) {
-                for (const item of value) query.append(`${key}[]`, String(item));
+                for (const item of value) query.append(`${key}[]`, scalar(key, item));
             } else {
-                query.append(key, String(value));
+                query.append(key, scalar(key, value));
             }
         }
 
@@ -475,7 +475,7 @@ export class XiboClient {
         const dayPartId = await this.dayPartId(timed ? "custom" : "always");
         const from = new Date();
         const fromDt = await this.cmsDateTime(from);
-        const toDt = timed ? await this.cmsDateTime(new Date(from.getTime() + durationSeconds! * 1000)) : undefined;
+        const toDt = timed ? await this.cmsDateTime(new Date(from.getTime() + durationSeconds * 1000)) : undefined;
 
         const replaced = await this.clearScheduledLayouts(displayGroupId, priority);
 
@@ -512,6 +512,31 @@ export class XiboClient {
     async collectNow(displayGroupId: number): Promise<void> {
         await this.request(`/displaygroup/${displayGroupId}/action/collectNow`, { method: "POST" });
     }
+}
+
+/**
+ * One parameter value as the CMS will receive it.
+ *
+ * `String({})` is `"[object Object]"`, and a form body is just text — so
+ * passing an object where the CMS wants a scalar used to send the literal
+ * string `[object Object]` and let the CMS decide what to make of it. That is
+ * the "not reported must never become a real value" trap in its purest form:
+ * a nested object is almost always a caller who meant to send its contents,
+ * and silently posting a placeholder is the worst available answer. Refused
+ * with the key named instead.
+ *
+ * Arrays are handled by the caller, which spreads them into `key[]` entries;
+ * this sees only their items, which must themselves be scalar.
+ */
+function scalar(key: string, value: unknown): string {
+    if (value === null || typeof value === "object" || typeof value === "function") {
+        throw new Error(
+            `parameter "${key}" must be a string, number or boolean, got ${
+                Array.isArray(value) ? "a nested array" : typeof value
+            } — the CMS would have received "[object Object]"`,
+        );
+    }
+    return String(value);
 }
 
 function safeParse(value: string): unknown {

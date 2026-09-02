@@ -1,22 +1,14 @@
 {
+    "extends": "@tsconfig/node22/tsconfig.json",
     "compileOnSave": true,
     "compilerOptions": {
-        "module": "commonjs",
         "outDir": "./build/",
         "rootDir": "./src/",
-        "target": "ES2022",
-        "moduleResolution": "node",
-        "esModuleInterop": true,
         "resolveJsonModule": true,
         "declaration": true,
-        "strict": true,
-        "noImplicitAny": true,
-        "strictNullChecks": true,
-        "strictFunctionTypes": true,
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "sourceMap": true,
-        "skipLibCheck": true,
         "types": [
             "@iobroker/types",
             "node"
