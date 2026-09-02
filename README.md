@@ -252,6 +252,14 @@ the folder tree and filters against it.
   branch whose recorded CMS name matches now wins, and any leftover is zeroed
   and named in a warning so you can delete it.
 
+- **Unticking every collection now mirrors nothing.** An empty list and an
+  absent setting were treated the same, so clearing all 23 entries and saving
+  left the adapter mirroring the 17 defaults anyway — 34 states recreated and
+  14 extra CMS requests every five minutes — while the config screen showed
+  nothing selected. An empty list is now honoured; the adapter still drives
+  display groups and layouts either way, since those are fetched for the
+  object tree rather than for the mirror.
+
 **New**
 
 - **`inventory.*` now mirrors 23 CMS collections**, not three: campaigns,

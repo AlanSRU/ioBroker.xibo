@@ -703,7 +703,7 @@ class XiboAdapter extends utils.Adapter {
             // take every deck button down with it.
             this.reportCondition(
                 'displayGroups',
-                `The CMS reported no display groups, but ${this.groupIndex.size} are known. ` +
+                `The CMS reported no display groups, but ${known} are known. ` +
                     `Keeping them rather than retiring all of them; check the application's permissions.`,
             );
             return;

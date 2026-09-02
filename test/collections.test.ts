@@ -64,10 +64,20 @@ describe("inventory collections", () => {
 });
 
 describe("selectedCollections", () => {
-    it("falls back to the defaults when unconfigured", () => {
-        for (const unset of [undefined, null, [], "not an array"]) {
+    it("falls back to the defaults when the setting is absent", () => {
+        // An instance upgrading from 0.2.0 has no such key, and mirroring
+        // nothing would empty the three states its scripts already read.
+        for (const unset of [undefined, null, "not an array", 42]) {
             expect(selectedCollections(unset).map((c) => c.key)).to.deep.equal(DEFAULT_COLLECTION_KEYS);
         }
+    });
+
+    it("mirrors nothing when the list is explicitly empty", () => {
+        // Conflating this with "absent" meant a user who unticked all 23
+        // entries and saved still got the 17 defaults mirrored — 34 states and
+        // 14 extra CMS requests every five minutes — while the config screen
+        // showed nothing selected, and the help text promised the opposite.
+        expect(selectedCollections([])).to.deep.equal([]);
     });
 
     it("honours an explicit selection, including one that drops a default", () => {

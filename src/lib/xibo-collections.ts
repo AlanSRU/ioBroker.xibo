@@ -221,15 +221,20 @@ function safeParse(value: string): unknown {
 /**
  * The collections to mirror, given what the instance is configured for.
  *
- * An unset or empty configuration means the defaults rather than nothing: an
- * instance upgrading from 0.2.0 has no such setting, and silently mirroring
- * nothing would empty the three inventory states it already relies on.
+ * An **absent** setting means the defaults: an instance upgrading from 0.2.0
+ * has no such key, and mirroring nothing would empty the three inventory
+ * states its scripts already read. An **empty list** means none, which is a
+ * different thing and is honoured as such.
  *
  */
 export function selectedCollections(configured: unknown): CollectionDefinition[] {
-    const keys =
-        Array.isArray(configured) && configured.length > 0
-            ? new Set(configured.map(String))
-            : new Set(DEFAULT_COLLECTION_KEYS);
+    // An absent setting means the defaults; an empty list means none. Treating
+    // the two the same let a user untick all 23 entries, save, and still get
+    // the 17 defaults mirrored — 34 states recreated and 14 extra CMS requests
+    // every five minutes — while the config screen showed nothing selected.
+    if (!Array.isArray(configured)) {
+        return COLLECTIONS.filter(c => DEFAULT_COLLECTION_KEYS.includes(c.key));
+    }
+    const keys = new Set(configured.map(String));
     return COLLECTIONS.filter(c => keys.has(c.key));
 }
