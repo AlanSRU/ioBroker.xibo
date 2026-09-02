@@ -191,6 +191,11 @@ class XiboAdapter extends utils.Adapter {
         return selectedCollections(this.settings.inventoryCollections);
     }
 
+    /** Whether one collection is mirrored, for the writers outside the mirror pass. */
+    private isMirrored(key: string): boolean {
+        return this.mirroredCollections().some((collection) => collection.key === key);
+    }
+
     /**
      * Removes the inventory states of collections no longer selected.
      *
@@ -413,7 +418,13 @@ class XiboAdapter extends utils.Adapter {
             }
 
             if (this.unloaded) return;
-            await this.setState("inventory.displaysJson", { val: JSON.stringify(displays), ack: true });
+            // Only when `displays` is actually mirrored. Writing it regardless
+            // resurrected the value 30 seconds after `pruneDeselectedCollections`
+            // had deleted the object, leaving an orphan that kept updating and
+            // looked live — so the collection could not in fact be turned off.
+            if (this.isMirrored("displays")) {
+                await this.setState("inventory.displaysJson", { val: JSON.stringify(displays), ack: true });
+            }
             this.statusFailures = 0;
             this.statusEverSucceeded = true;
             this.statusError = null;

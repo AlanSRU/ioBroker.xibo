@@ -31,6 +31,16 @@ export interface CollectionDefinition {
     defaultOn: boolean;
     /** Where the rows sit when the response is not a bare array. */
     rowsAt?: string;
+    /**
+     * Whether the response is a nested tree that has to be flattened.
+     *
+     * `/folders` answers the jsTree form: a single `isRoot` node with
+     * everything else nested under `children` — sometimes as a JSON string.
+     * Counting the top level therefore reports 1 folder on a CMS with fifty,
+     * and reports it with no error, which is why this is a flag and not a
+     * comment.
+     */
+    tree?: boolean;
     /** Why this collection is off by default, when it is. */
     note?: string;
 }
@@ -72,7 +82,7 @@ export const COLLECTIONS: CollectionDefinition[] = [
     { key: "resolutions", name: "Resolutions", path: "/resolution", defaultOn: true },
     { key: "displayProfiles", name: "Display profiles", path: "/displayprofile", defaultOn: true },
     { key: "dayParts", name: "Day parts", path: "/daypart", defaultOn: true },
-    { key: "folders", name: "Folder tree", path: "/folders", defaultOn: true },
+    { key: "folders", name: "Folders", path: "/folders", defaultOn: true, tree: true },
     { key: "cmsCommands", name: "CMS commands", path: "/command", defaultOn: true },
     { key: "syncGroups", name: "Sync groups", path: "/syncgroups", defaultOn: true },
     { key: "menuBoards", name: "Menu boards", path: "/menuboards", defaultOn: true },
@@ -148,7 +158,44 @@ export function collectionRows(definition: CollectionDefinition, body: unknown):
     const source = definition.rowsAt && body && typeof body === "object"
         ? (body as Record<string, unknown>)[definition.rowsAt]
         : body;
-    return Array.isArray(source) ? source : [];
+    if (!Array.isArray(source)) return [];
+    return definition.tree ? flattenTree(source) : source;
+}
+
+/**
+ * A nested `children` tree as a flat list, one entry per node.
+ *
+ * `children` is dropped from each entry: keeping it would repeat the whole
+ * subtree inside every ancestor, so a state holding a deep folder tree would
+ * be quadratic in size. Every node keeps its `parentId`, so the shape is still
+ * reconstructible — and a flat list is what a script wanting "the folder
+ * called X" actually needs.
+ *
+ * The CMS sometimes hands `children` back as a JSON string rather than an
+ * array, which is why this parses as well as walks.
+ */
+function flattenTree(nodes: unknown[]): unknown[] {
+    const flat: unknown[] = [];
+    const walk = (list: unknown): void => {
+        const parsed = typeof list === "string" ? safeParse(list) : list;
+        if (!Array.isArray(parsed)) return;
+        for (const node of parsed) {
+            if (node === null || typeof node !== "object") continue;
+            const { children, ...rest } = node as Record<string, unknown>;
+            flat.push(rest);
+            if (children !== undefined) walk(children);
+        }
+    };
+    walk(nodes);
+    return flat;
+}
+
+function safeParse(value: string): unknown {
+    try {
+        return JSON.parse(value);
+    } catch {
+        return null;
+    }
 }
 
 /**

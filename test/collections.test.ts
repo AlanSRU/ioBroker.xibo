@@ -3,6 +3,14 @@ import {
     COLLECTIONS, DEFAULT_COLLECTION_KEYS, PERSONAL_DATA_KEYS, collectionRows, collectionStateIds,
     selectedCollections,
 } from "../src/lib/xibo-collections";
+import { readFileSync } from "node:fs";
+import * as path from "node:path";
+
+const readJson = (name: string): Record<string, unknown> =>
+    JSON.parse(readFileSync(path.join(__dirname, "..", name), "utf8"));
+const jsonConfig = (): unknown =>
+    (readJson("admin/jsonConfig.json").items as Record<string, unknown>).inventoryCollections;
+const ioPackage = (): Record<string, unknown> => readJson("io-package.json");
 
 describe("inventory collections", () => {
     it("asks for campaigns in the only way that returns any", () => {
@@ -117,5 +125,92 @@ describe("collectionStateIds", () => {
         const ids = COLLECTIONS.flatMap((c) => Object.values(collectionStateIds(c)));
         expect(ids.length).to.equal(new Set(ids).size);
         for (const id of ids) expect(id).to.match(/^inventory\.[A-Za-z][A-Za-z0-9]*$/);
+    });
+});
+
+describe("collectionRows: the folder tree", () => {
+    const folders = COLLECTIONS.find((c) => c.key === "folders")!;
+
+    /** The shape `/folders` actually answers: one root, the rest nested. */
+    const live = [{
+        id: 1, text: "Root Folder", parentId: 0, isRoot: 1,
+        children: [{
+            id: 7, text: "Pixelmabob", parentId: 1,
+            children: [
+                { id: 10, text: "deck-test", parentId: 7 },
+                { id: 3, text: "calibration", parentId: 7 },
+            ],
+        }],
+    }];
+
+    it("counts every folder, not just the root", () => {
+        // The top level is a single isRoot node, so counting it reports 1
+        // folder on a CMS with fifty — and reports it with no error.
+        expect(collectionRows(folders, live)).to.have.length(4);
+    });
+
+    it("keeps parentId so the tree is still reconstructible", () => {
+        const rows = collectionRows(folders, live) as Array<Record<string, unknown>>;
+        expect(rows.map((r) => r.parentId)).to.deep.equal([0, 1, 7, 7]);
+        expect(rows.map((r) => r.text)).to.deep.equal(["Root Folder", "Pixelmabob", "deck-test", "calibration"]);
+    });
+
+    it("drops children, which would repeat each subtree inside every ancestor", () => {
+        for (const row of collectionRows(folders, live) as Array<Record<string, unknown>>) {
+            expect(row).to.not.have.property("children");
+        }
+    });
+
+    it("walks children handed back as a JSON string", () => {
+        // The CMS does this for some nodes, which is why the client's own
+        // folder walk parses as well as recurses.
+        const stringy = [{ id: 1, text: "Root Folder", parentId: 0, children: JSON.stringify([{ id: 2, text: "A", parentId: 1 }]) }];
+        expect(collectionRows(folders, stringy)).to.have.length(2);
+    });
+
+    it("survives a malformed tree rather than failing the whole refresh", () => {
+        expect(collectionRows(folders, [{ id: 1, children: "not json" }])).to.have.length(1);
+        expect(collectionRows(folders, [null, 42, "x"])).to.deep.equal([]);
+    });
+
+    it("leaves a flat collection alone", () => {
+        const flat = COLLECTIONS.find((c) => c.key === "layouts")!;
+        const rows = [{ layoutId: 1, children: "kept" }];
+        expect(collectionRows(flat, rows)).to.deep.equal(rows);
+    });
+});
+
+describe("the admin config offers exactly the catalogue", () => {
+    /**
+     * The multi-select is static JSON while the catalogue is code, so the two
+     * drift the moment a collection is added, removed or renamed — and the
+     * symptom is a box the user can tick that mirrors nothing, or a collection
+     * they cannot reach at all. Neither reports a problem.
+     */
+    const options = (jsonConfig() as { options: Array<{ label: string; value: string }> }).options;
+
+    it("offers every collection, and only those, in catalogue order", () => {
+        expect(options.map((o) => o.value)).to.deep.equal(COLLECTIONS.map((c) => c.key));
+    });
+
+    it("labels each one with its catalogue name", () => {
+        for (const collection of COLLECTIONS) {
+            const option = options.find((o) => o.value === collection.key)!;
+            expect(option.label, `${collection.key} is mislabelled`).to.contain(collection.name);
+        }
+    });
+
+    it("marks the ones that are off by default, and only those", () => {
+        for (const collection of COLLECTIONS) {
+            const option = options.find((o) => o.value === collection.key)!;
+            expect(option.label.includes("(off by default)"), `${collection.key}`).to.equal(!collection.defaultOn);
+        }
+    });
+
+    it("ships the on-by-default keys as the io-package.json default", () => {
+        // Otherwise a fresh install mirrors something different from what the
+        // admin UI shows ticked.
+        const native = ioPackage().native as { inventoryCollections: string[] };
+        expect(native.inventoryCollections).to.deep.equal(DEFAULT_COLLECTION_KEYS);
     });
 });
