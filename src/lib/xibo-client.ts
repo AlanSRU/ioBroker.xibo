@@ -1,6 +1,7 @@
 import type {
     AdapterLogger,
     XiboConfig,
+    XiboCriteriaUpdate,
     XiboDayPart,
     XiboDisplay,
     XiboDisplayGroup,
@@ -360,6 +361,58 @@ export class XiboClient {
                 downloadRequired: 1,
             }),
         });
+    }
+
+    // -------------------------------------------------------------- criteria
+
+    /**
+     * Push Schedule Criteria metric values at a display group (CMS 4.1+).
+     *
+     * Criteria are how one display group can hold several standing schedule
+     * entries and show exactly one of them: each entry carries `<criteria>`
+     * conditions, and the player evaluates them against the metric values
+     * pushed in here. So a button that changes a wall pushes a *value*, and the
+     * mapping from value to content lives in the CMS schedule — nothing here
+     * names a layout, which is why republishing a design cannot invalidate it.
+     *
+     * Three things this endpoint does not do, each of which matters:
+     *
+     * - **The CMS stores nothing.** It only forwards the value to the players
+     *   over XMR, so there is no readback: what was last sent is not the same
+     *   claim as what a wall is showing, and a player that missed the push is
+     *   indistinguishable from one that took it.
+     * - **A player that does not implement criteria ignores this silently**,
+     *   and worse, sees every gated entry as unconditional — so a group of
+     *   four gated entries rotates through all four instead of showing one.
+     * - **`ttl` is a floor, not a deadline.** A push re-evaluates the schedule
+     *   the moment it lands, but an expiry has no such trigger and is only
+     *   noticed at the player's next minute tick. Anything that must come off
+     *   screen at a definite time has to push a new value rather than let one
+     *   lapse.
+     *
+     * The CMS takes `abs($ttl)` and refuses an update with no ttl at all, so a
+     * value that should stand until it is next changed says so with a large
+     * one rather than by omitting it.
+     */
+    async pushCriteria(displayGroupId: number, updates: XiboCriteriaUpdate[]): Promise<void> {
+        if (updates.length === 0) {
+            throw new Error('pushCriteria needs at least one {metric, value, ttl} update');
+        }
+        // Repeated `criteriaUpdates[i][field]` keys, which is the encoding the
+        // CMS expects; a flat `criteriaUpdates[]` of objects is accepted and
+        // then ignored, leaving nothing pushed and no error.
+        const values: Record<string, string | number | undefined> = {};
+        updates.forEach((u, i) => {
+            values[`criteriaUpdates[${i}][metric]`] = u.metric;
+            values[`criteriaUpdates[${i}][value]`] = u.value;
+            values[`criteriaUpdates[${i}][ttl]`] = u.ttl;
+        });
+        await this.request(`/displaygroup/criteria/${displayGroupId}`, {
+            method: 'POST',
+            ...this.form(values),
+        });
+        const summary = updates.map(u => `${u.metric}=${u.value} (ttl ${u.ttl}s)`).join(', ');
+        this.log.debug(`pushCriteria: display group ${displayGroupId} <- ${summary}`);
     }
 
     // ------------------------------------------------------------ scheduling

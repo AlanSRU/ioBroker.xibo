@@ -142,6 +142,79 @@ export interface StateDefinition {
     def?: unknown;
 }
 
+/**
+ * Default ttl for a criteria push, in seconds (12 hours).
+ *
+ * The CMS refuses an update with no ttl, so there has to be a default, and it
+ * has to be long: the venue case is a wall holding what an operator selected
+ * until they select something else. A short one would drop the sign mid-event.
+ */
+export const DEFAULT_CRITERIA_TTL = 43200;
+
+/**
+ * One Schedule Criteria metric value, pushed at a display group.
+ *
+ * `value` is a string because the CMS compares it as one unless both sides
+ * parse as numbers — a metric is as likely to be a name as a number.
+ */
+export interface XiboCriteriaUpdate {
+    metric: string;
+    value: string;
+    /** Seconds the value stands for. The CMS refuses an update without one. */
+    ttl: number;
+}
+
+/**
+ * The criteria updates in a payload, as either one metric or a batch.
+ *
+ * `{displayGroupId, metric, value, ttl}` is the shape a deck button needs
+ * and the one anybody writes by hand; `{displayGroupId, updates: [...]}`
+ * sends several in one request, which matters because each push causes a
+ * schedule re-evaluation on every player in the group.
+ *
+ * `value` is coerced rather than required to be a string: it is nearly
+ * always a number in practice, and rejecting `value: 3` for not being
+ * `"3"` would be a pointless trap.
+ *
+ * The default ttl is deliberately long. The CMS refuses an update without
+ * one, and the venue case is a wall that holds what an operator selected
+ * until they select something else -- a short default would drop the sign
+ * mid-event, and a lapse is only noticed at the next minute tick anyway.
+ */
+export function parseCriteriaUpdates(payload: Record<string, unknown>): XiboCriteriaUpdate[] {
+    const one = (src: Record<string, unknown>, where: string): XiboCriteriaUpdate => {
+        if (typeof src.metric !== 'string' || src.metric.trim() === '') {
+            throw new Error(`"${where}metric" is required and must be a non-empty string`);
+        }
+        const metric = src.metric.trim();
+        const raw = src.value;
+        if (raw === undefined || raw === null || raw === '') {
+            throw new Error(`"${where}value" is required`);
+        }
+        if (typeof raw !== 'string' && typeof raw !== 'number' && typeof raw !== 'boolean') {
+            throw new Error(`"${where}value" must be a string or a number`);
+        }
+        const ttl = src.ttl === undefined || src.ttl === null ? DEFAULT_CRITERIA_TTL : Number(src.ttl);
+        if (!Number.isFinite(ttl)) {
+            throw new Error(`"${where}ttl" must be a number of seconds`);
+        }
+        return { metric, value: String(raw), ttl };
+    };
+
+    if (Array.isArray(payload.updates)) {
+        if (payload.updates.length === 0) {
+            throw new Error('"updates" must not be empty');
+        }
+        return payload.updates.map((u, i) => {
+            if (typeof u !== 'object' || u === null || Array.isArray(u)) {
+                throw new Error(`"updates[${i}]" must be an object`);
+            }
+            return one(u as Record<string, unknown>, `updates[${i}].`);
+        });
+    }
+    return [one(payload, '')];
+}
+
 export const CHANNEL_DEFINITIONS: ChannelDefinition[] = [
     { id: 'info', name: 'Connection and diagnostics' },
     { id: 'inventory', name: 'Mirrored CMS collections' },
@@ -215,6 +288,15 @@ export const STATE_DEFINITIONS: StateDefinition[] = [
     {
         id: 'commands.collectNow',
         name: 'Ask a display group to collect now: {displayGroupId}',
+        type: 'string',
+        role: 'json',
+        read: false,
+        write: true,
+        def: '',
+    },
+    {
+        id: 'commands.pushCriteria',
+        name: 'Push Schedule Criteria at a display group: {displayGroupId, metric, value, ttl?} or {displayGroupId, updates:[...]}',
         type: 'string',
         role: 'json',
         read: false,

@@ -8,6 +8,7 @@ import {
     DISPLAY_GROUP_STATE_SUFFIXES,
     evaluateHealth,
     chooseGroupBranch,
+    parseCriteriaUpdates,
     groupRenameAction,
     inventoryStateDefinitions,
     parseDurationSeconds,
@@ -1007,6 +1008,13 @@ class XiboAdapter extends utils.Adapter {
 
             case 'revertToSchedule':
                 await this.revertGroup(this.requireNumber(payload, 'displayGroupId'));
+                break;
+
+            case 'pushCriteria':
+                await this.client!.pushCriteria(
+                    this.requireNumber(payload, 'displayGroupId'),
+                    parseCriteriaUpdates(payload),
+                );
                 break;
 
             case 'collectNow':

@@ -45,7 +45,7 @@ describe("state definitions", () => {
         // Every writable state must have a handler in main.ts; these are they.
         expect(writable.sort()).to.deep.equal([
             "commands.api", "commands.changeLayout", "commands.collectNow", "commands.overlayLayout",
-            "commands.refresh", "commands.revertToSchedule",
+            "commands.pushCriteria", "commands.refresh", "commands.revertToSchedule",
             "playLayoutId", "revert",
         ].sort());
     });

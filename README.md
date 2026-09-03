@@ -133,8 +133,35 @@ clears the state, so an identical follow-up request still triggers.
 | `overlayLayout` | `{displayGroupId, layoutId, duration?}` — refused in `schedule` mode |
 | `revertToSchedule` | `{displayGroupId}` |
 | `collectNow` | `{displayGroupId}` |
+| `pushCriteria` | `{displayGroupId, metric, value, ttl?}`, or `{displayGroupId, updates:[…]}` |
 
 `commands.lastResult` records `{ok, command, payload, error?, ts}`.
+
+### Schedule Criteria
+
+`pushCriteria` sends metric values to a display group, which is the other way
+to change what a wall shows. Instead of naming a layout, the CMS schedule holds
+several standing entries each gated on a `<criteria>` condition, and the player
+picks the one whose condition its current metric values satisfy.
+
+The point is that **nothing outside the CMS names a layout**. A button pushes
+`wall1=3`; which content that is lives in the schedule. So republishing a
+design — or a still becoming a clip, which forces the layout to be rebuilt —
+cannot leave a button pointing at something that no longer exists.
+
+Three things to know:
+
+- **The CMS stores no value.** It only forwards the push to the players over
+  XMR, so there is no readback. What was last sent is a weaker claim than what
+  a wall is showing.
+- **A player that does not implement criteria fails open, not closed.** It sees
+  every gated entry as unconditional, so four entries gated `eq 1..4` all match
+  and the wall rotates through all four. Nothing errors.
+- **`ttl` is a floor, not a deadline.** A push re-evaluates the schedule the
+  moment it lands, but an expiry is only noticed at the player's next minute
+  tick. To take content off at a definite time, push a new value rather than
+  let one lapse. The default ttl is 12 hours, because the venue case is a wall
+  holding what an operator chose until they choose again.
 
 ## How a layout reaches the player
 
@@ -204,7 +231,16 @@ the folder tree and filters against it.
 	Placeholder for the next version (at the beginning of the line):
 	### __WORK IN PROGRESS__
 -->
-### __WORK IN PROGRESS__
+### 0.3.0 (2026-09-03)
+
+- **Schedule Criteria (CMS 4.1+).** `commands.pushCriteria` sends metric values
+  to a display group — `{displayGroupId, metric, value, ttl?}`, or
+  `{displayGroupId, updates:[…]}` to batch several into one request. Standing,
+  criteria-gated schedule entries in the CMS then decide which content a value
+  selects, so nothing outside the CMS names a layout and republishing cannot
+  invalidate a button. Note that the CMS stores no value and the player reports
+  none, so there is no readback; and a `ttl` is a floor, not a deadline —
+  expiry is only noticed at the player's next minute tick.
 
 **Behaviour changes — read these before upgrading.**
 
