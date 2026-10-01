@@ -9,9 +9,9 @@
 
 Play a layout on a Xibo display group, and put it back to its schedule.
 
-Built for driving LED walls from a StreamDeck: a button writes a layout id to a
-display group, the display changes immediately, and a revert button hands it back
-to the schedule.
+Anything in ioBroker that can write a state — a button, a script, a scene, a
+VIS widget — can put a layout on a display group, and hand it back to the
+schedule afterwards.
 
 [Xibo](https://xibosignage.com/) is an open-source digital signage platform, of
 which this drives the CMS.
@@ -29,7 +29,7 @@ its own; a layout is what a display can be told to show.
 
 ## Calling the rest of the API
 
-The state tree covers what a venue drives day to day. The CMS exposes far more —
+The state tree covers everyday control of what displays show. The CMS exposes far more —
 dataset editing, widget and region layout, user administration — and modelling
 all of it as states would be thousands of states for jobs better done in the
 Xibo UI. So anything not modelled is still one call away:
@@ -48,7 +48,7 @@ await sendToAsync("xibo.0", "api", {
 ```
 
 `commands.api` does the same from a state — write
-`{"method":"POST","path":"/tag","params":{"name":"match-day"}}` — but a state
+`{"method":"POST","path":"/tag","params":{"name":"reception"}}` — but a state
 cannot hand a response back to whoever wrote it, so the body lands in
 `commands.lastResult`. Prefer `sendTo` when you need the answer.
 
@@ -119,7 +119,7 @@ are omitted, because they are never what an operator picks.
 | `playLayoutId` | **Writable.** Write a layout id to play it on this group. |
 | `revert` | **Writable.** Return this group to its schedule. |
 
-`playLayoutId` is the one a StreamDeck button writes.
+`playLayoutId` is the state to bind a button or script to.
 
 ### Commands
 
@@ -140,28 +140,28 @@ clears the state, so an identical follow-up request still triggers.
 ### Schedule Criteria
 
 `pushCriteria` sends metric values to a display group, which is the other way
-to change what a wall shows. Instead of naming a layout, the CMS schedule holds
+to change what a display shows. Instead of naming a layout, the CMS schedule holds
 several standing entries each gated on a `<criteria>` condition, and the player
 picks the one whose condition its current metric values satisfy.
 
 The point is that **nothing outside the CMS names a layout**. A button pushes
-`wall1=3`; which content that is lives in the schedule. So republishing a
-design — or a still becoming a clip, which forces the layout to be rebuilt —
-cannot leave a button pointing at something that no longer exists.
+`screen1=3`; which content that is lives in the schedule. So replacing a layout
+with a new one cannot leave a button pointing at something that no longer
+exists.
 
 Three things to know:
 
 - **The CMS stores no value.** It only forwards the push to the players over
   XMR, so there is no readback. What was last sent is a weaker claim than what
-  a wall is showing.
+  a display is showing.
 - **A player that does not implement criteria fails open, not closed.** It sees
   every gated entry as unconditional, so four entries gated `eq 1..4` all match
-  and the wall rotates through all four. Nothing errors.
+  and the display rotates through all four. Nothing errors.
 - **`ttl` is a floor, not a deadline.** A push re-evaluates the schedule the
   moment it lands, but an expiry is only noticed at the player's next minute
   tick. To take content off at a definite time, push a new value rather than
-  let one lapse. The default ttl is 12 hours, because the venue case is a wall
-  holding what an operator chose until they choose again.
+  let one lapse. The default ttl is 12 hours, so a display holds what an
+  operator chose until they choose again.
 
 ## How a layout reaches the player
 
@@ -184,7 +184,7 @@ So `schedule` mode does not use the action. It:
    is what makes the change land in seconds rather than at the next poll.
 
 A `duration` becomes a custom day part bounded by `toDt`, which the player
-enforces locally, so the sign comes down on time without hearing from the CMS
+enforces locally, so the layout comes down on time without hearing from the CMS
 again.
 
 `revertToSchedule` in this mode **deletes that event** rather than posting the
@@ -207,23 +207,23 @@ Pick `action` only for the official Xibo player, where it is instant.
 gaxibo reports it from a field its GUI thread updates asynchronously — so the
 collect that applies a new layout usually still reports the previous one.
 Measured at anything from 4 seconds to 5 minutes behind. It is a status field,
-not a confirmation that a command worked, and binding a deck's active highlight
-to it will light the wrong key.
+not a confirmation that a command worked, and binding a button's active
+indicator to it will light the wrong button.
 
 ## Notes
 
 **A layout change replaces the schedule and stays** until something else changes
-it or the group is reverted — `changeMode: replace` with no duration. In a live
-venue what you pressed should be what is showing, and it should not expire
-halfway through a match. Set a default duration if you want the opposite.
+it or the group is reverted — `changeMode: replace` with no duration, so what
+was pressed stays on screen rather than expiring unexpectedly. Set a default
+duration if you want the opposite.
 
 **`downloadRequired` is set**, so the player fetches the layout before showing
 it rather than flashing an empty screen while it downloads.
 
 **Folder scoping covers the subtree.** The CMS `folderId` filter matches one
 folder exactly, so scoping to a root folder alone finds nothing when layouts sit
-in per-project subfolders, which is how a per-project publisher files them. The adapter walks
-the folder tree and filters against it.
+in subfolders below it. The adapter walks the folder tree and filters against
+it.
 
 ## Changelog
 
@@ -248,7 +248,7 @@ the folder tree and filters against it.
   `Number("30s")` is `NaN` and `Number("")` is `0`, and both used to mean "no
   duration", so `{"layoutId":41,"duration":"30s"}` booked an *indefinite* play
   and still recorded `ok:true`. It now throws, `commands.lastResult` records
-  `ok:false`, and the error names the field. If a deck button or script sends a
+  `ok:false`, and the error names the field. If a button or script sends a
   duration with units in it, fix the payload — that button was not doing what
   it appeared to do before.
 - **`info.connection` means something slightly different.** It now stays
@@ -260,7 +260,7 @@ the folder tree and filters against it.
   fewer spurious disconnects.
 - **Scheduled layouts survive a DST change.** The CMS's UTC offset was read
   once and kept for the life of the instance, so an adapter running since
-  summer booked every event an hour out after the October change — the wall
+  summer booked every event an hour out after the October change — the display
   changing an hour late, or a timed layout never appearing at all, with `ok`
   reported both times. It is now re-read hourly.
 
@@ -281,7 +281,7 @@ the folder tree and filters against it.
 - **A display group renamed in the CMS keeps its branch.** The branch id is
   folded from the group name, so a rename used to produce a *second* branch on
   the next restart while the old one stayed behind for ever, frozen at its last
-  counts and looking live — and a deck button still writing the old
+  counts and looking live — and a button still writing the old
   `displayGroups.<old name>.playLayoutId` hit a state that existed and looked
   healthy while nothing happened. Branches are now matched on the CMS id, so
   the rename follows the name state and existing bindings keep working. A group
@@ -304,7 +304,7 @@ the folder tree and filters against it.
 - **A duplicate branch left by 0.2.0 no longer wins.** 0.2.0 created a second
   branch after a CMS rename, both carrying the same `displayGroupId`. The
   first fix adopted whichever the database returned first — deterministically
-  the older, dead one — leaving the branch your deck had been rebound to
+  the older, dead one — leaving the branch your bindings had been moved to
   unindexed, where every press failed with "not in the CMS any more". The
   branch whose recorded CMS name matches now wins, and any leftover is zeroed
   and named in a warning so you can delete it.
@@ -342,27 +342,7 @@ the folder tree and filters against it.
   `package.json`, `io-package.json` and this changelog cannot drift apart.
 - Integration test that starts the adapter under a real js-controller.
 
-### 0.2.0
-
-- **Layout changes now reach Arexibo and gaxibo players.** Those players do not
-  implement the CMS's `changeLayout` XMR action — it arrives, is logged as
-  unsupported and dropped, while the CMS reports success — so a layout change
-  did nothing and nothing failed. The new default `schedule` mode books a
-  priority schedule event and sends `collectNow` instead, which every player
-  honours. Verified through to a live display.
-- `layoutPlayMode` setting: `schedule` (default, works on any player) or
-  `action` (instant, official Xibo player only).
-- `schedulePriority` setting, which is also the marker for the events the
-  adapter owns and may replace.
-- `revertToSchedule` deletes the adapter's own schedule event in `schedule`
-  mode, rather than posting an XMR action the player would ignore.
-- `overlayLayout` is refused in `schedule` mode rather than silently doing
-  nothing, since those players render no overlay by either route.
-
-### 0.1.0
-
-- Initial release: display group and layout inventory, and change layout /
-  overlay layout / revert to schedule / collect now commands.
+**Older changes have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md)**
 
 ## Requirements
 
@@ -382,11 +362,13 @@ honours its own schedule. Use it unless you have a reason not to.
 
 `action` mode posts the CMS's `changeLayout` XMR action, which is instant but is
 **silently ignored** by players that do not implement it — the CMS still reports
-success. [Arexibo](https://github.com/schnitzeltony/arexibo) and gaxibo are in
-that category. Only choose `action` with the official Xibo player.
+success. [Arexibo](https://github.com/birkenfeld/arexibo) and
+[gaxibo](https://github.com/AlanSRU/gaxibo) are in that category. Gaxibo is a
+fork of Arexibo that plays video through GStreamer so the hardware decoder is
+used, built for Rockchip RK3399 players. Only choose `action` with the official Xibo player.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
 
-Copyright (c) 2026 Alan Paris
+Copyright (c) 2026 Alan Paris <alan.paris@scottish.rugby>

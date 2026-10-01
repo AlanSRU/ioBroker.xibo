@@ -134,8 +134,8 @@ export class XiboClient {
     /**
      * Any CMS operation, by method and path.
      *
-     * The CMS exposes 263 operations and this adapter models the few dozen a
-     * venue actually drives. Hand-modelling the rest — dataset column editing,
+     * The CMS exposes 263 operations and this adapter models the few dozen
+     * used day to day. Hand-modelling the rest — dataset column editing,
      * widget elements, region positioning, user administration — would be
      * thousands of lines of state tree for things better done in the Xibo UI,
      * but "not modelled" should not mean "unreachable". This is the escape
@@ -250,9 +250,8 @@ export class XiboClient {
      * Layouts in a folder **and everything below it**.
      *
      * The CMS `folderId` filter matches that one folder exactly, so asking for
-     * the root folder returns nothing when the layouts sit in per-project
-     * subfolders, which is how a per-project publisher files them. The subtree is
-     * computed here and the layouts filtered against it.
+     * the root folder returns nothing when the layouts sit in subfolders
+     * below it. The subtree is computed here and the layouts filtered against it.
      *
      */
     async listLayoutsInFolderTree(path: string): Promise<XiboLayout[]> {
@@ -328,9 +327,9 @@ export class XiboClient {
      * Plays a layout on a display group, interrupting its schedule.
      *
      * `changeMode: replace` and no duration means it stays until something else
-     * changes it or the group is reverted — which is what a live operator
+     * changes it or the group is reverted — which is what an operator
      * wants: what you pressed is what is showing, and it does not expire
-     * halfway through a match.
+     * unexpectedly.
      *
      */
     async changeLayout(displayGroupId: number, layoutId: number, durationSeconds?: number): Promise<void> {
@@ -371,15 +370,15 @@ export class XiboClient {
      * Criteria are how one display group can hold several standing schedule
      * entries and show exactly one of them: each entry carries `<criteria>`
      * conditions, and the player evaluates them against the metric values
-     * pushed in here. So a button that changes a wall pushes a *value*, and the
-     * mapping from value to content lives in the CMS schedule — nothing here
-     * names a layout, which is why republishing a design cannot invalidate it.
+     * pushed in here. So a button that changes a display pushes a *value*, and
+     * the mapping from value to content lives in the CMS schedule — nothing
+     * here names a layout, which is why replacing a layout cannot invalidate it.
      *
      * Three things this endpoint does not do, each of which matters:
      *
      * - **The CMS stores nothing.** It only forwards the value to the players
      *   over XMR, so there is no readback: what was last sent is not the same
-     *   claim as what a wall is showing, and a player that missed the push is
+     *   claim as what a display is showing, and a player that missed the push is
      *   indistinguishable from one that took it.
      * - **A player that does not implement criteria ignores this silently**,
      *   and worse, sees every gated entry as unconditional — so a group of
@@ -454,10 +453,10 @@ export class XiboClient {
      * `/clock` is the CMS's own answer to "what time do you think it is", which
      * is exactly the question. Cached only briefly: the offset saves a round
      * trip per schedule call, but it is not constant — it moves at every DST
-     * change, and a venue instance is not restarted twice a year on cue. Held
+     * change, and an instance is not restarted twice a year on cue. Held
      * indefinitely, an adapter up since summer still believes the CMS is on
      * BST in November and books every event an hour out: an hour into the
-     * future in the indefinite case, so the wall does not change until long
+     * future in the indefinite case, so the display does not change until long
      * after the button was pressed, or an hour into the past for a timed
      * event, whose window has then already closed and never plays. Both
      * report `ok` and log nothing, which is the whole reason this method
@@ -573,10 +572,10 @@ export class XiboClient {
      *
      * The previous event is deleted **before** the new one is created: two
      * layout events at the same priority both play, so leaving the old one
-     * turns a replacement into a two-sign cycle.
+     * turns a replacement into a two-layout cycle.
      *
      * A duration becomes a custom day part bounded by `toDt`, which the player
-     * enforces locally — so the sign comes down on time without needing to
+     * enforces locally — so the layout comes down on time without needing to
      * hear from the CMS again. With no duration it is an "always" event and
      * stays until something replaces it or the group is reverted.
      *

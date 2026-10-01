@@ -6,6 +6,9 @@
     "cmsHeader": "Xibo CMS",
     "defaultChangeDurationHelp": "Combien de temps une mise en page reste avant que l'affichage ne revienne à sa planification. 0 signifie qu'il reste jusqu'à ce qu'il soit rétabli.",
     "defaultChangeDurationLabel": "Durée par défaut (secondes)",
+    "inventoryCollectionsHelp": "Chaque collection sélectionnée reçoit un état inventory.<nom>Json et un compteur. Celles désactivées par défaut sont volumineuses (médiathèque, modules de widgets) ou contiennent des données personnelles (utilisateurs, groupes d'utilisateurs, sessions actives). Les collections non sélectionnées restent accessibles via sendTo(\"xibo.0\", \"api\", { method, path }).",
+    "inventoryCollectionsLabel": "Collections à mettre en miroir dans inventory.*",
+    "inventoryHeader": "Collections du CMS mises en miroir",
     "inventoryPollIntervalHelp": "À quelle fréquence relire les groupes d’affichage et les dispositions",
     "inventoryPollIntervalLabel": "Actualisation de l'inventaire (ms)",
     "layoutFolderHelp": "Proposez uniquement des mises en page dans ce dossier CMS et ci-dessous. Laissez vide pour chaque mise en page dans le CMS.",
@@ -26,8 +29,5 @@
     "statusPollIntervalLabel": "Actualisation du statut (ms)",
     "urlHelp": "La racine du CMS, sans le suffixe /api",
     "urlLabel": "URL du CMS",
-    "urlPlaceholder": "https://signage.internal",
-    "inventoryHeader": "Collections du CMS mises en miroir",
-    "inventoryCollectionsLabel": "Collections à mettre en miroir dans inventory.*",
-    "inventoryCollectionsHelp": "Chaque collection sélectionnée reçoit un état inventory.<nom>Json et un compteur. Celles désactivées par défaut sont volumineuses (médiathèque, modules de widgets) ou contiennent des données personnelles (utilisateurs, groupes d'utilisateurs, sessions actives). Les collections non sélectionnées restent accessibles via sendTo(\"xibo.0\", \"api\", { method, path })."
+    "urlPlaceholder": "https://signage.internal"
 }

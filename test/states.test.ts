@@ -66,7 +66,7 @@ describe("state definitions", () => {
     });
 
     it("folds CMS names into safe object ids", () => {
-        expect(sanitizeId("LED Walls")).to.equal("led_walls");
+        expect(sanitizeId("Reception Screens")).to.equal("reception_screens");
         expect(sanitizeId("West / East")).to.equal("west_east");
         expect(sanitizeId("...")).to.equal("unnamed");
     });

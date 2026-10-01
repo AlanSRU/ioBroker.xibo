@@ -6,6 +6,9 @@
     "cmsHeader": "Xibo CMS",
     "defaultChangeDurationHelp": "Hoe lang een lay-out blijft staan ​​voordat het display terugkeert naar het schema. 0 betekent dat het blijft totdat het wordt teruggedraaid.",
     "defaultChangeDurationLabel": "Standaardduur (seconden)",
+    "inventoryCollectionsHelp": "Elke geselecteerde collectie krijgt een inventory.<naam>Json-status en een aantal. De standaard uitgeschakelde zijn groot (mediabibliotheek, widgetmodules) of bevatten persoonsgegevens (gebruikers, gebruikersgroepen, actieve sessies). Niet-geselecteerde collecties blijven bereikbaar via sendTo(\"xibo.0\", \"api\", { method, path }).",
+    "inventoryCollectionsLabel": "Collecties om te spiegelen naar inventory.*",
+    "inventoryHeader": "Gespiegelde CMS-collecties",
     "inventoryPollIntervalHelp": "Hoe vaak displaygroepen en lay-outs opnieuw moeten worden gelezen",
     "inventoryPollIntervalLabel": "Voorraadvernieuwing (ms)",
     "layoutFolderHelp": "Bied alleen lay-outs aan in deze CMS-map en lager. Laat leeg voor elke lay-out in het CMS.",
@@ -26,8 +29,5 @@
     "statusPollIntervalLabel": "Statusvernieuwing (ms)",
     "urlHelp": "De CMS-hoofdmap, zonder het achtervoegsel /api",
     "urlLabel": "CMS-URL",
-    "urlPlaceholder": "https://signage.internal",
-    "inventoryHeader": "Gespiegelde CMS-collecties",
-    "inventoryCollectionsLabel": "Collecties om te spiegelen naar inventory.*",
-    "inventoryCollectionsHelp": "Elke geselecteerde collectie krijgt een inventory.<naam>Json-status en een aantal. De standaard uitgeschakelde zijn groot (mediabibliotheek, widgetmodules) of bevatten persoonsgegevens (gebruikers, gebruikersgroepen, actieve sessies). Niet-geselecteerde collecties blijven bereikbaar via sendTo(\"xibo.0\", \"api\", { method, path })."
+    "urlPlaceholder": "https://signage.internal"
 }

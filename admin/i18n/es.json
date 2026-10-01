@@ -6,6 +6,9 @@
     "cmsHeader": "Xibo CMS",
     "defaultChangeDurationHelp": "Cuánto tiempo permanece un diseño antes de que la visualización vuelva a su programación. 0 significa que permanece hasta que se revierte.",
     "defaultChangeDurationLabel": "Duración predeterminada (segundos)",
+    "inventoryCollectionsHelp": "Cada colección seleccionada obtiene un estado inventory.<nombre>Json y un recuento. Las desactivadas por defecto son grandes (biblioteca multimedia, módulos de widgets) o contienen datos personales (usuarios, grupos de usuarios, sesiones activas). Las no seleccionadas siguen siendo accesibles mediante sendTo(\"xibo.0\", \"api\", { method, path }).",
+    "inventoryCollectionsLabel": "Colecciones que se reflejarán en inventory.*",
+    "inventoryHeader": "Colecciones del CMS reflejadas",
     "inventoryPollIntervalHelp": "Con qué frecuencia volver a leer los diseños y los grupos de visualización",
     "inventoryPollIntervalLabel": "Actualización de inventario (ms)",
     "layoutFolderHelp": "Ofrezca diseños únicamente en esta carpeta CMS y a continuación. Déjelo vacío para cada diseño del CMS.",
@@ -26,8 +29,5 @@
     "statusPollIntervalLabel": "Actualización de estado (ms)",
     "urlHelp": "La raíz del CMS, sin el sufijo /api",
     "urlLabel": "URL del CMS",
-    "urlPlaceholder": "https://signage.internal",
-    "inventoryHeader": "Colecciones del CMS reflejadas",
-    "inventoryCollectionsLabel": "Colecciones que se reflejarán en inventory.*",
-    "inventoryCollectionsHelp": "Cada colección seleccionada obtiene un estado inventory.<nombre>Json y un recuento. Las desactivadas por defecto son grandes (biblioteca multimedia, módulos de widgets) o contienen datos personales (usuarios, grupos de usuarios, sesiones activas). Las no seleccionadas siguen siendo accesibles mediante sendTo(\"xibo.0\", \"api\", { method, path })."
+    "urlPlaceholder": "https://signage.internal"
 }

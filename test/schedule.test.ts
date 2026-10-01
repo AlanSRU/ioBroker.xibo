@@ -75,7 +75,7 @@ function stubCms(options: {
         }
         if (url.includes("/api/layout?layoutId=")) {
             if (options.layout === null) return json([]);
-            return json([options.layout ?? { layoutId: 39, layout: "sign", width: 1920, height: 1024, campaignId: 20 }]);
+            return json([options.layout ?? { layoutId: 39, layout: "promo", width: 1920, height: 1024, campaignId: 20 }]);
         }
         if (url.includes("/api/schedule?")) {
             return json((options.events ?? []).map((e) => ({ ...e, eventTypeId: 1, campaignId: 99, dayPartId: 2 })));
@@ -164,7 +164,7 @@ describe("scheduleLayout", () => {
             expect(deletes[0]).to.contain("/api/schedule/29");
 
             // Order matters: two layout events at one priority both play, so a
-            // create before the delete would cycle the old sign with the new.
+            // create before the delete would cycle the old layout with the new.
             const deleteAt = cms.calls.findIndex((c) => c.method === "DELETE");
             const createAt = cms.calls.findIndex((c) => c.method === "POST" && c.url.endsWith("/api/schedule"));
             expect(deleteAt).to.be.lessThan(createAt);
@@ -219,10 +219,10 @@ describe("the CMS clock offset", () => {
     it("is read again once it goes stale, so a DST change cannot strand it", async () => {
         // Held for the life of the instance, an adapter up since summer still
         // believes the CMS is on BST in November and books every event an hour
-        // out: an hour ahead in the indefinite case, so the wall does not
+        // out: an hour ahead in the indefinite case, so the display does not
         // change until long after the button was pressed, or an hour behind
         // for a timed event, whose window has already closed and never plays.
-        // Both report ok and log nothing. A venue instance is not restarted
+        // Both report ok and log nothing. An instance is not restarted
         // twice a year on cue.
         const cms = stubCms();
         const realNow = Date.now;

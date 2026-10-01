@@ -6,6 +6,9 @@
     "cmsHeader": "Xibo CMS",
     "defaultChangeDurationHelp": "Wie lange ein Layout verbleibt, bevor die Anzeige zu ihrem Zeitplan zurückkehrt. 0 bedeutet, dass es so bleibt, bis es wiederhergestellt wird.",
     "defaultChangeDurationLabel": "Standarddauer (Sekunden)",
+    "inventoryCollectionsHelp": "Jede ausgewählte Sammlung erhält einen Zustand inventory.<Name>Json und eine Anzahl. Die standardmäßig deaktivierten sind entweder groß (Medienbibliothek, Widget-Module) oder enthalten personenbezogene Daten (Benutzer, Benutzergruppen, aktive Sitzungen). Nicht ausgewählte Sammlungen sind weiterhin über sendTo(\"xibo.0\", \"api\", { method, path }) erreichbar.",
+    "inventoryCollectionsLabel": "Sammlungen, die nach inventory.* gespiegelt werden",
+    "inventoryHeader": "Gespiegelte CMS-Sammlungen",
     "inventoryPollIntervalHelp": "Wie oft werden Anzeigegruppen und Layouts erneut gelesen?",
     "inventoryPollIntervalLabel": "Inventaraktualisierung (ms)",
     "layoutFolderHelp": "Bieten Sie nur Layouts in diesem CMS-Ordner und darunter an. Für jedes Layout im CMS leer lassen.",
@@ -26,8 +29,5 @@
     "statusPollIntervalLabel": "Statusaktualisierung (ms)",
     "urlHelp": "Das CMS-Stammverzeichnis ohne das Suffix /api",
     "urlLabel": "CMS-URL",
-    "urlPlaceholder": "https://signage.internal",
-    "inventoryHeader": "Gespiegelte CMS-Sammlungen",
-    "inventoryCollectionsLabel": "Sammlungen, die nach inventory.* gespiegelt werden",
-    "inventoryCollectionsHelp": "Jede ausgewählte Sammlung erhält einen Zustand inventory.<Name>Json und eine Anzahl. Die standardmäßig deaktivierten sind entweder groß (Medienbibliothek, Widget-Module) oder enthalten personenbezogene Daten (Benutzer, Benutzergruppen, aktive Sitzungen). Nicht ausgewählte Sammlungen sind weiterhin über sendTo(\"xibo.0\", \"api\", { method, path }) erreichbar."
+    "urlPlaceholder": "https://signage.internal"
 }

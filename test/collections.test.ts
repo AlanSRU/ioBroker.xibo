@@ -56,7 +56,7 @@ describe("inventory collections", () => {
     it("keeps mirroring the three collections 0.2.0 already exposed", () => {
         // An instance upgrading from 0.2.0 has no collection setting at all.
         // Treating that as "mirror nothing" would empty the three states its
-        // scripts and deck buttons already read.
+        // scripts and buttons already read.
         for (const key of ["displayGroups", "displays", "layouts"]) {
             expect(DEFAULT_COLLECTION_KEYS).to.contain(key);
         }
@@ -145,9 +145,9 @@ describe("collectionRows: the folder tree", () => {
     const live = [{
         id: 1, text: "Root Folder", parentId: 0, isRoot: 1,
         children: [{
-            id: 7, text: "Pixelmabob", parentId: 1,
+            id: 7, text: "Signage", parentId: 1,
             children: [
-                { id: 10, text: "deck-test", parentId: 7 },
+                { id: 10, text: "campaign-a", parentId: 7 },
                 { id: 3, text: "calibration", parentId: 7 },
             ],
         }],
@@ -162,7 +162,7 @@ describe("collectionRows: the folder tree", () => {
     it("keeps parentId so the tree is still reconstructible", () => {
         const rows = collectionRows(folders, live) as Array<Record<string, unknown>>;
         expect(rows.map((r) => r.parentId)).to.deep.equal([0, 1, 7, 7]);
-        expect(rows.map((r) => r.text)).to.deep.equal(["Root Folder", "Pixelmabob", "deck-test", "calibration"]);
+        expect(rows.map((r) => r.text)).to.deep.equal(["Root Folder", "Signage", "campaign-a", "calibration"]);
     });
 
     it("drops children, which would repeat each subtree inside every ancestor", () => {

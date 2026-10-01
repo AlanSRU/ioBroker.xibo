@@ -33,9 +33,9 @@ export interface XiboConfig {
     statusPollInterval: number;
     requestTimeout: number;
     /**
-     * Only surface layouts in this CMS folder (and below). A publishing tool
-     * that files one layout per design puts them under a single root folder,
-     * and a deck should offer those rather than every layout in the CMS.
+     * Only surface layouts in this CMS folder (and below), so a CMS shared
+     * with other uses offers only the layouts meant for this instance rather
+     * than every layout in the CMS.
      */
     layoutFolder: string;
     /** Seconds a changeLayout stays in effect; 0 means until reverted. */
@@ -146,8 +146,9 @@ export interface StateDefinition {
  * Default ttl for a criteria push, in seconds (12 hours).
  *
  * The CMS refuses an update with no ttl, so there has to be a default, and it
- * has to be long: the venue case is a wall holding what an operator selected
- * until they select something else. A short one would drop the sign mid-event.
+ * has to be long: the usual case is a display holding what an operator
+ * selected until they select something else. A short one would drop the
+ * content mid-event.
  */
 export const DEFAULT_CRITERIA_TTL = 43200;
 
@@ -167,7 +168,7 @@ export interface XiboCriteriaUpdate {
 /**
  * The criteria updates in a payload, as either one metric or a batch.
  *
- * `{displayGroupId, metric, value, ttl}` is the shape a deck button needs
+ * `{displayGroupId, metric, value, ttl}` is the shape a button needs
  * and the one anybody writes by hand; `{displayGroupId, updates: [...]}`
  * sends several in one request, which matters because each push causes a
  * schedule re-evaluation on every player in the group.
@@ -177,8 +178,8 @@ export interface XiboCriteriaUpdate {
  * `"3"` would be a pointless trap.
  *
  * The default ttl is deliberately long. The CMS refuses an update without
- * one, and the venue case is a wall that holds what an operator selected
- * until they select something else -- a short default would drop the sign
+ * one, and the usual case is a display that holds what an operator selected
+ * until they select something else -- a short default would drop the content
  * mid-event, and a lapse is only noticed at the next minute tick anyway.
  */
 export function parseCriteriaUpdates(payload: Record<string, unknown>): XiboCriteriaUpdate[] {
@@ -507,12 +508,12 @@ export function parseDurationSeconds(value: unknown, fallback: number): number {
  * The `command` and `payload` a failed write should be recorded under.
  *
  * `commands.lastResult` is documented as `{ok, command, payload, error?, ts}`
- * and is the state a deck reads to find out whether its press worked. The
+ * and is the state a button or script reads to find out whether its press worked. The
  * success and failure paths used to describe the same write differently: a
  * working `commands.changeLayout` recorded `command: "changeLayout"` with the
  * parsed payload, while a failing one recorded `command:
  * "commands.changeLayout"` with the raw string, and a failing per-group write
- * recorded `command: "displayGroups.led_walls.playLayoutId"` with a bare
+ * recorded `command: "displayGroups.reception.playLayoutId"` with a bare
  * number. A consumer matching `command === "changeLayout"` to decide whether
  * its own press succeeded therefore matched every success and no failure, and
  * reported a failed press as still pending.
@@ -585,7 +586,7 @@ export interface GroupBranch {
  * a duplicate branch carrying the same id. Adopting whichever the objects
  * database happened to return first took the older, dead one — deterministically,
  * since the default file/jsonl backend iterates in creation order — renamed it,
- * and left the branch a deck had been rebound to out of the index, where every
+ * and left the branch bindings had been moved to out of the index, where every
  * press failed with "not in the CMS any more". Which was untrue.
  *
  * The recorded CMS name decides, then the id the current name folds to, then

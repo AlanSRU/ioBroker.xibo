@@ -10,3 +10,6 @@ CLAUDE.md
 # Local pre-release review marker — never commit; a committed marker would
 # look fresh in a new clone and defeat the release gate.
 .review/
+
+# ioBroker dev-server instance (npx @iobroker/dev-server)
+.dev-server/

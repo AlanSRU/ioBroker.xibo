@@ -17,19 +17,19 @@ describe('chooseGroupBranch', () => {
     it('prefers the branch whose recorded CMS name still matches', () => {
         // 0.2.0 left a second branch after a rename, both carrying the same
         // displayGroupId. Taking the first one adopted the older, dead branch
-        // and left the one a deck was rebound to unindexed, where every press
+        // and left the one bindings were moved to unindexed, where every press
         // failed with "not in the CMS any more" — which was untrue.
-        const candidates = [branch('displayGroups.led_walls', 'LED Walls'), branch('displayGroups.north_wall', 'North Wall')];
-        expect(chooseGroupBranch(candidates, 'North Wall', 'displayGroups.north_wall')!.objectId).to.equal(
-            'displayGroups.north_wall',
+        const candidates = [branch('displayGroups.reception', 'Reception'), branch('displayGroups.lobby', 'Lobby')];
+        expect(chooseGroupBranch(candidates, 'Lobby', 'displayGroups.lobby')!.objectId).to.equal(
+            'displayGroups.lobby',
         );
     });
 
     it('falls back to the id the current name folds to', () => {
         // A branch from before the CMS name was recorded has nothing to match.
-        const candidates = [branch('displayGroups.old', undefined), branch('displayGroups.north_wall', undefined)];
-        expect(chooseGroupBranch(candidates, 'North Wall', 'displayGroups.north_wall')!.objectId).to.equal(
-            'displayGroups.north_wall',
+        const candidates = [branch('displayGroups.old', undefined), branch('displayGroups.lobby', undefined)];
+        expect(chooseGroupBranch(candidates, 'Lobby', 'displayGroups.lobby')!.objectId).to.equal(
+            'displayGroups.lobby',
         );
     });
 
@@ -41,30 +41,30 @@ describe('chooseGroupBranch', () => {
     });
 
     it('returns nothing when the tree has no branch for the group', () => {
-        expect(chooseGroupBranch([], 'LED Walls', 'displayGroups.led_walls')).to.equal(undefined);
+        expect(chooseGroupBranch([], 'Reception', 'displayGroups.reception')).to.equal(undefined);
     });
 
     it('is not fooled by a user-renamed label', () => {
         // The label is the user's; only the recorded CMS name identifies it.
         const candidates = [
-            branch('displayGroups.led_walls', 'LED Walls', 'Main wall (do not touch)'),
-            branch('displayGroups.led_walls_2', 'Something else'),
+            branch('displayGroups.reception', 'Reception', 'Main screens (do not touch)'),
+            branch('displayGroups.reception_2', 'Something else'),
         ];
-        expect(chooseGroupBranch(candidates, 'LED Walls', 'displayGroups.led_walls')!.objectId).to.equal(
-            'displayGroups.led_walls',
+        expect(chooseGroupBranch(candidates, 'Reception', 'displayGroups.reception')!.objectId).to.equal(
+            'displayGroups.reception',
         );
     });
 });
 
 describe('groupRenameAction', () => {
     it('does nothing when the CMS name is unchanged', () => {
-        const plan = groupRenameAction(branch('displayGroups.led_walls', 'LED Walls'), 'LED Walls');
+        const plan = groupRenameAction(branch('displayGroups.reception', 'Reception'), 'Reception');
         expect(plan.changed).to.equal(false);
         expect(plan.updateLabel).to.equal(false);
     });
 
     it('moves the label along on a real CMS rename', () => {
-        const plan = groupRenameAction(branch('displayGroups.led_walls', 'LED Walls'), 'North Wall');
+        const plan = groupRenameAction(branch('displayGroups.reception', 'Reception'), 'Lobby');
         expect(plan.changed).to.equal(true);
         expect(plan.userRenamed).to.equal(false);
         expect(plan.updateLabel).to.equal(true);
@@ -72,8 +72,8 @@ describe('groupRenameAction', () => {
 
     it("leaves a label the user has claimed, even on a real CMS rename", () => {
         const plan = groupRenameAction(
-            branch('displayGroups.led_walls', 'LED Walls', 'Main wall (do not touch)'),
-            'North Wall',
+            branch('displayGroups.reception', 'Reception', 'Main screens (do not touch)'),
+            'Lobby',
         );
         expect(plan.changed).to.equal(true);
         expect(plan.userRenamed).to.equal(true);
@@ -87,8 +87,8 @@ describe('groupRenameAction', () => {
         // happened — while the comment beside it said the object was left
         // create-only precisely so a user rename would survive.
         const plan = groupRenameAction(
-            branch('displayGroups.led_walls', 'LED Walls', 'Main wall (do not touch)'),
-            'LED Walls',
+            branch('displayGroups.reception', 'Reception', 'Main screens (do not touch)'),
+            'Reception',
         );
         expect(plan.changed).to.equal(false);
         expect(plan.updateLabel).to.equal(false);
@@ -97,7 +97,7 @@ describe('groupRenameAction', () => {
     it('fills in a missing record silently, without claiming a rename', () => {
         // A branch created before the CMS name was recorded: nothing is known
         // about whether the label was ever the CMS's, so it is left alone.
-        const plan = groupRenameAction(branch('displayGroups.led_walls', undefined), 'LED Walls');
+        const plan = groupRenameAction(branch('displayGroups.reception', undefined), 'Reception');
         expect(plan.firstRecord).to.equal(true);
         expect(plan.updateLabel).to.equal(false);
     });

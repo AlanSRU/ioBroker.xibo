@@ -49,7 +49,7 @@ describe("pushCriteria: wire format", () => {
     it("posts indexed criteriaUpdates keys to the display group", async () => {
         const { calls, restore } = stub();
         try {
-            await client().pushCriteria(5, [{ metric: "wall1", value: "3", ttl: 3600 }]);
+            await client().pushCriteria(5, [{ metric: "screen1", value: "3", ttl: 3600 }]);
         } finally {
             restore();
         }
@@ -57,7 +57,7 @@ describe("pushCriteria: wire format", () => {
         expect(call.method).to.equal("POST");
         expect(call.url).to.equal("http://cms.test/api/displaygroup/criteria/5");
         expect(call.body).to.deep.equal({
-            "criteriaUpdates[0][metric]": "wall1",
+            "criteriaUpdates[0][metric]": "screen1",
             "criteriaUpdates[0][value]": "3",
             "criteriaUpdates[0][ttl]": "3600",
         });
@@ -72,18 +72,18 @@ describe("pushCriteria: wire format", () => {
         const { calls, restore } = stub();
         try {
             await client().pushCriteria(5, [
-                { metric: "wall1", value: "1", ttl: 60 },
-                { metric: "wall2", value: "hdmi", ttl: 60 },
+                { metric: "screen1", value: "1", ttl: 60 },
+                { metric: "screen2", value: "hdmi", ttl: 60 },
             ]);
         } finally {
             restore();
         }
         expect(apiCalls(calls)).to.have.length(1);
         expect(apiCalls(calls)[0].body).to.deep.equal({
-            "criteriaUpdates[0][metric]": "wall1",
+            "criteriaUpdates[0][metric]": "screen1",
             "criteriaUpdates[0][value]": "1",
             "criteriaUpdates[0][ttl]": "60",
-            "criteriaUpdates[1][metric]": "wall2",
+            "criteriaUpdates[1][metric]": "screen2",
             "criteriaUpdates[1][value]": "hdmi",
             "criteriaUpdates[1][ttl]": "60",
         });
@@ -106,7 +106,7 @@ describe("pushCriteria: wire format", () => {
     it("treats 204 as success", async () => {
         const { restore } = stub();
         try {
-            await client().pushCriteria(5, [{ metric: "wall1", value: "2", ttl: 30 }]);
+            await client().pushCriteria(5, [{ metric: "screen1", value: "2", ttl: 30 }]);
         } finally {
             restore();
         }
@@ -114,19 +114,19 @@ describe("pushCriteria: wire format", () => {
 });
 
 describe("parseCriteriaUpdates", () => {
-    it("takes the single-metric shape a deck button writes", () => {
-        expect(parseCriteriaUpdates({ metric: "wall1", value: "2", ttl: 60 })).to.deep.equal([
-            { metric: "wall1", value: "2", ttl: 60 },
+    it("takes the single-metric shape a button writes", () => {
+        expect(parseCriteriaUpdates({ metric: "screen1", value: "2", ttl: 60 })).to.deep.equal([
+            { metric: "screen1", value: "2", ttl: 60 },
         ]);
     });
 
     /** Nearly always a number in practice; rejecting 3 for not being "3" is a pointless trap. */
     it("coerces a numeric value to the string the CMS compares", () => {
-        expect(parseCriteriaUpdates({ metric: "wall1", value: 3, ttl: 60 })[0].value).to.equal("3");
+        expect(parseCriteriaUpdates({ metric: "screen1", value: 3, ttl: 60 })[0].value).to.equal("3");
     });
 
     it("defaults the ttl, since the CMS refuses an update without one", () => {
-        expect(parseCriteriaUpdates({ metric: "wall1", value: "1" })[0].ttl).to.equal(DEFAULT_CRITERIA_TTL);
+        expect(parseCriteriaUpdates({ metric: "screen1", value: "1" })[0].ttl).to.equal(DEFAULT_CRITERIA_TTL);
     });
 
     it("takes a batch under `updates`", () => {
@@ -144,18 +144,18 @@ describe("parseCriteriaUpdates", () => {
      * both, and only for the one value nobody tests by hand.
      */
     it("accepts zero as a value", () => {
-        expect(parseCriteriaUpdates({ metric: "wall1", value: 0 })[0].value).to.equal("0");
+        expect(parseCriteriaUpdates({ metric: "screen1", value: 0 })[0].value).to.equal("0");
     });
 
     const bad: [string, Record<string, unknown>, RegExp][] = [
         ["no metric", { value: "1" }, /metric/],
         ["blank metric", { metric: "   ", value: "1" }, /metric/],
-        ["no value", { metric: "wall1" }, /value/],
-        ["empty value", { metric: "wall1", value: "" }, /value/],
-        ["object value", { metric: "wall1", value: { a: 1 } }, /value/],
-        ["unparseable ttl", { metric: "wall1", value: "1", ttl: "soon" }, /ttl/],
+        ["no value", { metric: "screen1" }, /value/],
+        ["empty value", { metric: "screen1", value: "" }, /value/],
+        ["object value", { metric: "screen1", value: { a: 1 } }, /value/],
+        ["unparseable ttl", { metric: "screen1", value: "1", ttl: "soon" }, /ttl/],
         ["empty batch", { updates: [] }, /empty/],
-        ["non-object in batch", { updates: ["wall1=1"] }, /updates\[0\]/],
+        ["non-object in batch", { updates: ["screen1=1"] }, /updates\[0\]/],
     ];
     for (const [name, payload, message] of bad) {
         it(`refuses ${name}`, () => {

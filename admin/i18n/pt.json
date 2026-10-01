@@ -6,6 +6,9 @@
     "cmsHeader": "XiboCMS",
     "defaultChangeDurationHelp": "Quanto tempo um layout permanece antes que a exibição retorne à sua programação. 0 significa que permanece até ser revertido.",
     "defaultChangeDurationLabel": "Duração padrão (segundos)",
+    "inventoryCollectionsHelp": "Cada coleção selecionada obtém um estado inventory.<nome>Json e uma contagem. As desativadas por omissão são grandes (biblioteca de multimédia, módulos de widgets) ou contêm dados pessoais (utilizadores, grupos de utilizadores, sessões ativas). As não selecionadas continuam acessíveis através de sendTo(\"xibo.0\", \"api\", { method, path }).",
+    "inventoryCollectionsLabel": "Coleções a espelhar em inventory.*",
+    "inventoryHeader": "Coleções do CMS espelhadas",
     "inventoryPollIntervalHelp": "Com que frequência reler grupos de exibição e layouts",
     "inventoryPollIntervalLabel": "Atualização de inventário (ms)",
     "layoutFolderHelp": "Ofereça layouts apenas nesta pasta CMS e abaixo. Deixe em branco para cada layout no CMS.",
@@ -26,8 +29,5 @@
     "statusPollIntervalLabel": "Atualização de status (ms)",
     "urlHelp": "A raiz do CMS, sem o sufixo /api",
     "urlLabel": "URL do CMS",
-    "urlPlaceholder": "https://signage.internal",
-    "inventoryHeader": "Coleções do CMS espelhadas",
-    "inventoryCollectionsLabel": "Coleções a espelhar em inventory.*",
-    "inventoryCollectionsHelp": "Cada coleção selecionada obtém um estado inventory.<nome>Json e uma contagem. As desativadas por omissão são grandes (biblioteca de multimédia, módulos de widgets) ou contêm dados pessoais (utilizadores, grupos de utilizadores, sessões ativas). As não selecionadas continuam acessíveis através de sendTo(\"xibo.0\", \"api\", { method, path })."
+    "urlPlaceholder": "https://signage.internal"
 }

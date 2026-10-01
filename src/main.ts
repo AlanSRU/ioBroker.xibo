@@ -307,10 +307,10 @@ class XiboAdapter extends utils.Adapter {
      * The branch id is folded from the CMS name, so without this a group
      * renamed in Xibo got a *second* branch on the next restart while the old
      * one stayed behind for ever, frozen at its last counts and looking live —
-     * and a StreamDeck button still writing the old
+     * and a button still writing the old
      * `displayGroups.<old name>.playLayoutId` found a state that existed and
      * looked healthy while nothing happened. Matching on the CMS id kept in
-     * `native` means a rename keeps its branch, and the deck binding keeps
+     * `native` means a rename keeps its branch, and existing bindings keep
      * working.
      */
     private async seedGroupIndex(): Promise<void> {
@@ -331,7 +331,7 @@ class XiboAdapter extends utils.Adapter {
             // Every candidate, not the first: 0.2.0 created a second branch
             // after a CMS rename and both carry the same displayGroupId, so
             // taking whichever the database happened to return first adopted
-            // the older, dead branch and left the one a deck had been rebound
+            // the older, dead branch and left the one bindings had been moved
             // to unindexed — where every press failed with "not in the CMS any
             // more", which was untrue. The CMS name decides instead, and only
             // `ensureGroupObject` knows it.
@@ -415,7 +415,7 @@ class XiboAdapter extends utils.Adapter {
         const existing = this.groupIndex.get(group.displayGroupId) ?? (await this.adoptGroupBranch(group));
         if (existing) {
             // A group renamed in the CMS keeps its branch — moving it would
-            // break every deck button bound to the old id — but the name of
+            // break every button bound to the old id — but the name of
             // record has to follow, or the tree asserts the old one for ever.
             //
             // Compared against the CMS name in `native`, never against the
@@ -597,7 +597,7 @@ class XiboAdapter extends utils.Adapter {
                 const found = await this.client.findFolderPath(config.layoutFolder);
                 // Latched only once the CMS has actually answered. Closing it
                 // before the await turned a timeout into permanent loss of
-                // folder scoping, and the deck would then be offered every
+                // folder scoping, and users would then be offered every
                 // layout in the CMS with nothing logged.
                 this.layoutFolderChecked = true;
                 this.layoutFolderId = found;
@@ -619,7 +619,7 @@ class XiboAdapter extends utils.Adapter {
             ]);
 
             // Display-specific groups are Xibo's internal per-display groups;
-            // they are not what an operator would ever pick on a deck.
+            // they are not what an operator would ever pick.
             if (this.unloaded) {
                 return false;
             }
@@ -678,13 +678,13 @@ class XiboAdapter extends utils.Adapter {
      * One failing collection is logged and skipped rather than failing the
      * whole pass: a Xibo application is feature-scoped, so an estate that has
      * never used menu boards can answer 403 there while everything else works,
-     * and losing the display and layout inventory over that would take the
-     * deck down.
+     * and losing the display and layout inventory over that would take
+     * every control down.
      */
     /**
      * Stops reporting on display groups the CMS no longer has.
      *
-     * The branch is left in place — deleting it would take a deck button's
+     * The branch is left in place — deleting it would take a button's
      * state out from under it with no warning — but it is zeroed once and
      * dropped from the index, so it reads as empty rather than sitting frozen
      * at its last counts looking live. A write to it then fails visibly
@@ -701,7 +701,7 @@ class XiboAdapter extends utils.Adapter {
             // Every group disappearing at once is far more likely a changed
             // application scope, or a CMS that answered an empty list, than a
             // real deletion of the whole estate — and zeroing the lot would
-            // take every deck button down with it.
+            // take every button down with it.
             this.reportCondition(
                 'displayGroups',
                 `The CMS reported no display groups, but ${known} are known. ` +
@@ -850,8 +850,8 @@ class XiboAdapter extends utils.Adapter {
     /**
      * `sendTo` entry point, for the operations this adapter does not model.
      *
-     * The CMS exposes 263 operations; the state tree covers the few dozen a
-     * venue drives. This reaches the rest — and unlike `commands.api`, it
+     * The CMS exposes 263 operations; the state tree covers the few dozen
+     * used day to day. This reaches the rest — and unlike `commands.api`, it
      * hands the response body back to the caller, which a state cannot do.
      *
      *     const layouts = await sendToAsync("xibo.0", "api", {
@@ -1057,9 +1057,9 @@ class XiboAdapter extends utils.Adapter {
         const [, groupSegment, suffix] = local.split('.');
         const entry = [...this.groupIndex.values()].find(g => g.objectId === `displayGroups.${groupSegment}`);
         if (!entry) {
-            // Thrown, not warned: the caller is a deck button whose state still
+            // Thrown, not warned: the caller is a button whose state still
             // exists, so returning quietly left it looking healthy while the
-            // wall never changed. The throw reaches onStateChange's catch,
+            // display never changed. The throw reaches onStateChange's catch,
             // which records ok:false in commands.lastResult.
             throw new Error(
                 `Display group "${groupSegment}" is not in the CMS any more, so nothing was played. ` +
@@ -1110,7 +1110,7 @@ class XiboAdapter extends utils.Adapter {
      *
      * In `schedule` mode the thing overriding that schedule is the adapter's
      * own priority event, so reverting means deleting it. The XMR revert action
-     * would leave it in place and the sign would stay up — a revert that
+     * would leave it in place and the layout would stay up — a revert that
      * reports success and changes nothing.
      *
      */

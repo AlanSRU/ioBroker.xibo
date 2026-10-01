@@ -100,9 +100,9 @@ describe("describeWrite", () => {
     });
 
     it("names a per-group write by its suffix, and keeps the group", () => {
-        const { command, payload } = describeWrite("displayGroups.led_walls.playLayoutId", 41);
+        const { command, payload } = describeWrite("displayGroups.reception.playLayoutId", 41);
         expect(command).to.equal("playLayoutId");
-        expect(payload).to.deep.equal({ displayGroup: "led_walls", value: 41 });
+        expect(payload).to.deep.equal({ displayGroup: "reception", value: 41 });
     });
 
     it("agrees with the command names the success paths use", () => {

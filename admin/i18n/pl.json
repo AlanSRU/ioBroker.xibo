@@ -6,6 +6,9 @@
     "cmsHeader": "CMS Xibo",
     "defaultChangeDurationHelp": "Jak długo układ pozostaje, zanim wyświetlacz powróci do swojego harmonogramu. 0 oznacza, że ​​pozostanie aż do przywrócenia.",
     "defaultChangeDurationLabel": "Domyślny czas trwania (sekundy)",
+    "inventoryCollectionsHelp": "Każda wybrana kolekcja otrzymuje stan inventory.<nazwa>Json oraz licznik. Wyłączone domyślnie są duże (biblioteka multimediów, moduły widżetów) albo zawierają dane osobowe (użytkownicy, grupy użytkowników, aktywne sesje). Niewybrane kolekcje nadal są dostępne przez sendTo(\"xibo.0\", \"api\", { method, path }).",
+    "inventoryCollectionsLabel": "Kolekcje do odwzorowania w inventory.*",
+    "inventoryHeader": "Odwzorowane kolekcje CMS",
     "inventoryPollIntervalHelp": "Jak często ponownie czytać grupy i układy wyświetlania",
     "inventoryPollIntervalLabel": "Odświeżanie zapasów (ms)",
     "layoutFolderHelp": "Oferuj układy tylko w tym folderze CMS i poniżej. Pozostaw puste dla każdego układu w CMS.",
@@ -26,8 +29,5 @@
     "statusPollIntervalLabel": "Odświeżanie stanu (ms)",
     "urlHelp": "Katalog główny CMS, bez przyrostka /api",
     "urlLabel": "Adres URL systemu CMS",
-    "urlPlaceholder": "https://signage.internal",
-    "inventoryHeader": "Odwzorowane kolekcje CMS",
-    "inventoryCollectionsLabel": "Kolekcje do odwzorowania w inventory.*",
-    "inventoryCollectionsHelp": "Każda wybrana kolekcja otrzymuje stan inventory.<nazwa>Json oraz licznik. Wyłączone domyślnie są duże (biblioteka multimediów, moduły widżetów) albo zawierają dane osobowe (użytkownicy, grupy użytkowników, aktywne sesje). Niewybrane kolekcje nadal są dostępne przez sendTo(\"xibo.0\", \"api\", { method, path })."
+    "urlPlaceholder": "https://signage.internal"
 }
