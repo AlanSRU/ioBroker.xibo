@@ -231,6 +231,36 @@ it.
 	Placeholder for the next version (at the beginning of the line):
 	### __WORK IN PROGRESS__
 -->
+### **WORK IN PROGRESS**
+
+**Behaviour changes — read these before upgrading.**
+
+- **Command payloads are checked strictly.** Ids must be positive integers,
+  given as a number or a numeric string. `true`, `null` and `""` used to be
+  turned into 1 or 0, so `{"displayGroupId": true}` targeted display group 1;
+  they are now refused and `commands.lastResult` records `ok:false`. The same
+  applies to `duration`, and to a criteria `ttl`, which must now be a positive
+  number — a blank ttl used to expire the push at the next minute tick instead
+  of using the 12-hour default.
+- **`schedulePriority` is rounded to a whole number.** A fractional priority
+  meant the adapter could never find its own schedule events again, so they
+  piled up instead of being replaced.
+- **`defaultChangeDuration` is capped at 86400 seconds** in code as well as in
+  admin, since a larger value sent the CMS an invalid date.
+
+**Fixes**
+
+- Display-group states created by an earlier version now receive updated
+  definitions, and one deleted by hand is recreated on the next start.
+- A command cut short by the instance stopping — saving the config restarts it
+  — no longer logs an error or writes `commands.lastResult` from a stopping
+  adapter.
+- Two display groups whose names fold to the same object id can no longer end
+  up sharing a branch.
+- The collection picker in admin is translated, and several admin strings that
+  had been mistranslated are corrected.
+- A new icon that reads as a screen at small sizes.
+
 ### 0.3.0 (2026-09-03)
 
 - **Schedule Criteria (CMS 4.1+).** `commands.pushCriteria` sends metric values

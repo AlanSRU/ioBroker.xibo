@@ -214,7 +214,8 @@
             "xl": 6,
             "min": 1,
             "max": 1000,
-            "hidden": "data.layoutPlayMode === 'action'"
+            "hidden": "data.layoutPlayMode === 'action'",
+            "step": 1
         },
         "_pollHeader": {
             "type": "header",

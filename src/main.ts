@@ -3,6 +3,7 @@ import { XiboClient } from './lib/xibo-client';
 import type { StateDefinition, XiboConfig, XiboDisplayGroup } from './lib/xibo-types';
 import {
     CHANNEL_DEFINITIONS,
+    chooseBranchId,
     conditionAction,
     describeWrite,
     DISPLAY_GROUP_STATE_SUFFIXES,
@@ -11,7 +12,9 @@ import {
     parseCriteriaUpdates,
     groupRenameAction,
     inventoryStateDefinitions,
+    parseConfig,
     parseDurationSeconds,
+    requireId,
     sanitizeId,
     STATE_DEFINITIONS,
 } from './lib/xibo-types';
@@ -36,18 +39,6 @@ function requireText(value: unknown, field: string, fallback: string): string {
     return value;
 }
 
-/**
- * Keeps a configured number inside sane bounds, falling back when unusable.
- *
- */
-function clamp(value: unknown, min: number, max: number, fallback: number): number {
-    const n = Number(value);
-    if (!Number.isFinite(n) || n <= 0) {
-        return fallback;
-    }
-    return Math.min(max, Math.max(min, n));
-}
-
 interface GroupIndexEntry {
     objectId: string;
     displayGroupId: number;
@@ -65,6 +56,8 @@ interface GroupIndexEntry {
     cmsName: string | undefined;
     /** The channel's `common.name`, which the user may have changed. */
     channelName: string;
+    /** Whether this run has already written the branch's state definitions. */
+    statesEnsured?: boolean;
 }
 
 /** A `displayGroups.<x>` channel found in the object tree at startup. */
@@ -113,34 +106,7 @@ class XiboAdapter extends utils.Adapter {
     }
 
     private get settings(): XiboConfig {
-        const c = this.config as unknown as Partial<XiboConfig>;
-        return {
-            url: (c.url ?? '').trim(),
-            clientId: (c.clientId ?? '').trim(),
-            clientSecret: (c.clientSecret ?? '').trim(),
-            // Clamped at both ends in code, not just in the admin UI: an
-            // instance object can be written by a restored backup or a script,
-            // and a value at or above 2^31 makes Node fall back to a 1 ms timer
-            // — which would poll the CMS continuously, or abort every request
-            // before it could answer.
-            inventoryPollInterval: clamp(c.inventoryPollInterval, 30_000, 86_400_000, 300_000),
-            statusPollInterval: clamp(c.statusPollInterval, 5_000, 3_600_000, 30_000),
-            requestTimeout: clamp(c.requestTimeout, 2_000, 120_000, 30_000),
-            layoutFolder: (c.layoutFolder ?? '').trim(),
-            defaultChangeDuration: Math.max(0, Number(c.defaultChangeDuration) || 0),
-            // An unset or empty selection means the defaults, not nothing: an
-            // instance upgrading from 0.2.0 has no such setting, and mirroring
-            // nothing would empty the three states its scripts already read.
-            inventoryCollections: selectedCollections(
-                (this.config as unknown as { inventoryCollections?: unknown }).inventoryCollections,
-            ).map(collection => collection.key),
-            // Defaults to `schedule` because it is the mode that works on any
-            // player: a schedule is honoured universally, whereas the XMR
-            // action is silently ignored by players that do not implement it.
-            // `action` is the optimisation, not the safe choice.
-            layoutPlayMode: c.layoutPlayMode === 'action' ? 'action' : 'schedule',
-            schedulePriority: clamp(c.schedulePriority, 1, 1000, 10),
-        };
+        return parseConfig(this.config);
     }
 
     private async onReady(): Promise<void> {
@@ -460,12 +426,12 @@ class XiboAdapter extends utils.Adapter {
                 }
                 existing.cmsName = group.displayGroup;
             }
+            await this.ensureGroupStates(existing);
             return existing;
         }
 
         // Two groups can fold to the same id, so a collision falls back to the
         // CMS id rather than silently overwriting the first one's states.
-        let objectId = `displayGroups.${sanitizeId(group.displayGroup)}`;
         // Unadopted candidates included: a new group whose name folds onto a
         // branch still waiting to be claimed would otherwise take it, and the
         // original group could then be indexed onto the same objectId — one
@@ -474,10 +440,7 @@ class XiboAdapter extends utils.Adapter {
             ...[...this.groupIndex.values()].map(g => g.objectId),
             ...[...this.groupCandidates.values()].flat().map(c => c.objectId),
         ]);
-        const clash = taken.has(objectId);
-        if (clash) {
-            objectId = `${objectId}_${group.displayGroupId}`;
-        }
+        const objectId = chooseBranchId(`displayGroups.${sanitizeId(group.displayGroup)}`, group.displayGroupId, taken);
 
         // The one object deliberately left as setObjectNotExists: this channel
         // is named after the CMS display group, and a user may well have
@@ -489,8 +452,34 @@ class XiboAdapter extends utils.Adapter {
             native: { displayGroupId: group.displayGroupId, displayGroup: group.displayGroup },
         });
 
+        const entry: GroupIndexEntry = {
+            objectId,
+            displayGroupId: group.displayGroupId,
+            cmsName: group.displayGroup,
+            channelName: group.displayGroup,
+        };
+        await this.ensureGroupStates(entry);
+        this.groupIndex.set(group.displayGroupId, entry);
+        return entry;
+    }
+
+    /**
+     * Writes a group branch's state definitions, once per run.
+     *
+     * For adopted branches as well as new ones. Only new branches used to get
+     * them, so a branch created by an earlier version kept its old definitions
+     * for ever — no `def` on anything 0.1.0 made — and a state deleted by hand
+     * was never recreated, leaving the status poll writing to a missing object
+     * every 30 seconds. The channel's own name is not touched here: that is the
+     * user's to change.
+     *
+     */
+    private async ensureGroupStates(entry: GroupIndexEntry): Promise<void> {
+        if (entry.statesEnsured) {
+            return;
+        }
         for (const suffix of DISPLAY_GROUP_STATE_SUFFIXES) {
-            await this.extendObjectAsync(`${objectId}.${suffix.id}`, {
+            await this.extendObjectAsync(`${entry.objectId}.${suffix.id}`, {
                 type: 'state',
                 common: {
                     name: suffix.name,
@@ -503,15 +492,7 @@ class XiboAdapter extends utils.Adapter {
                 native: {},
             });
         }
-
-        const entry: GroupIndexEntry = {
-            objectId,
-            displayGroupId: group.displayGroupId,
-            cmsName: group.displayGroup,
-            channelName: group.displayGroup,
-        };
-        this.groupIndex.set(group.displayGroupId, entry);
-        return entry;
+        entry.statesEnsured = true;
     }
 
     // ------------------------------------------------------------ polling
@@ -925,6 +906,13 @@ class XiboAdapter extends utils.Adapter {
                 return;
             }
         } catch (err) {
+            // A command cut short by the instance stopping — a config save
+            // restarts it — is not a failure worth an error in the log, and a
+            // stopping adapter has no business writing lastResult.
+            if (this.unloaded) {
+                this.log.debug(`${local} interrupted by shutdown: ${(err as Error).message}`);
+                return;
+            }
             this.log.error(`${local} failed: ${(err as Error).message}`);
             // Named the same way the success paths name it, so a caller keyed
             // on `command` sees its failures as well as its successes.
@@ -945,14 +933,6 @@ class XiboAdapter extends utils.Adapter {
         }
     }
 
-    private requireNumber(payload: Record<string, unknown>, key: string): number {
-        const value = Number(payload[key]);
-        if (!Number.isFinite(value)) {
-            throw new Error(`"${key}" is required and must be a number`);
-        }
-        return value;
-    }
-
     /**
      * The requested duration in seconds, or the configured default.
      *
@@ -961,8 +941,26 @@ class XiboAdapter extends utils.Adapter {
         return parseDurationSeconds(payload.duration, this.settings.defaultChangeDuration);
     }
 
+    /**
+     * The CMS client, read once by each command before its first await.
+     *
+     * `onUnload` clears `this.client`, and a command is often mid-request when
+     * that happens — a config save restarts the instance. Re-reading
+     * `this.client!` after an await then threw a TypeError halfway through,
+     * so a revert removed the event but never sent the collect. Holding the
+     * reference lets the command finish what it started.
+     *
+     */
+    private requireClient(): XiboClient {
+        if (!this.client) {
+            throw new Error('The adapter is not connected to the CMS');
+        }
+        return this.client;
+    }
+
     private async handleCommand(command: string, value: unknown): Promise<void> {
         const payload = command === 'refresh' ? {} : this.parsePayload(value);
+        const client = this.requireClient();
 
         switch (command) {
             case 'refresh': {
@@ -982,8 +980,9 @@ class XiboAdapter extends utils.Adapter {
 
             case 'changeLayout':
                 await this.playLayout(
-                    this.requireNumber(payload, 'displayGroupId'),
-                    this.requireNumber(payload, 'layoutId'),
+                    client,
+                    requireId(payload.displayGroupId, 'displayGroupId'),
+                    requireId(payload.layoutId, 'layoutId'),
                     this.durationSeconds(payload),
                 );
                 break;
@@ -999,26 +998,26 @@ class XiboAdapter extends utils.Adapter {
                             'schedule mode, which exists for players that do not — use changeLayout instead.',
                     );
                 }
-                await this.client!.overlayLayout(
-                    this.requireNumber(payload, 'displayGroupId'),
-                    this.requireNumber(payload, 'layoutId'),
+                await client.overlayLayout(
+                    requireId(payload.displayGroupId, 'displayGroupId'),
+                    requireId(payload.layoutId, 'layoutId'),
                     this.durationSeconds(payload),
                 );
                 break;
 
             case 'revertToSchedule':
-                await this.revertGroup(this.requireNumber(payload, 'displayGroupId'));
+                await this.revertGroup(client, requireId(payload.displayGroupId, 'displayGroupId'));
                 break;
 
             case 'pushCriteria':
-                await this.client!.pushCriteria(
-                    this.requireNumber(payload, 'displayGroupId'),
+                await client.pushCriteria(
+                    requireId(payload.displayGroupId, 'displayGroupId'),
                     parseCriteriaUpdates(payload),
                 );
                 break;
 
             case 'collectNow':
-                await this.client!.collectNow(this.requireNumber(payload, 'displayGroupId'));
+                await client.collectNow(requireId(payload.displayGroupId, 'displayGroupId'));
                 break;
 
             case 'api': {
@@ -1029,7 +1028,7 @@ class XiboAdapter extends utils.Adapter {
                     typeof payload.params === 'object' && payload.params !== null
                         ? (payload.params as Record<string, unknown>)
                         : {};
-                const result = await this.client!.call(
+                const result = await client.call(
                     requireText(payload.method, 'method', 'GET'),
                     requireText(payload.path, 'path', ''),
                     params,
@@ -1068,18 +1067,20 @@ class XiboAdapter extends utils.Adapter {
         }
 
         if (suffix === 'playLayoutId') {
-            const layoutId = Number(value);
-            if (!Number.isFinite(layoutId) || layoutId <= 0) {
-                throw new Error(`playLayoutId must be a positive layout id, got ${String(value)}`);
-            }
-            await this.playLayout(entry.displayGroupId, layoutId, this.settings.defaultChangeDuration);
+            const layoutId = requireId(value, 'playLayoutId');
+            await this.playLayout(
+                this.requireClient(),
+                entry.displayGroupId,
+                layoutId,
+                this.settings.defaultChangeDuration,
+            );
             await this.setState(local, { val: layoutId, ack: true });
             await this.recordResult('playLayoutId', { displayGroupId: entry.displayGroupId, layoutId }, true);
             return;
         }
 
         if (suffix === 'revert') {
-            await this.revertGroup(entry.displayGroupId);
+            await this.revertGroup(this.requireClient(), entry.displayGroupId);
             await this.setState(local, { val: false, ack: true });
             await this.recordResult('revert', { displayGroupId: entry.displayGroupId }, true);
             return;
@@ -1096,13 +1097,18 @@ class XiboAdapter extends utils.Adapter {
      * mechanisms.
      *
      */
-    private async playLayout(displayGroupId: number, layoutId: number, duration: number): Promise<void> {
+    private async playLayout(
+        client: XiboClient,
+        displayGroupId: number,
+        layoutId: number,
+        duration: number,
+    ): Promise<void> {
         const { layoutPlayMode, schedulePriority } = this.settings;
         if (layoutPlayMode === 'action') {
-            await this.client!.changeLayout(displayGroupId, layoutId, duration);
+            await client.changeLayout(displayGroupId, layoutId, duration);
             return;
         }
-        await this.client!.scheduleLayout(displayGroupId, layoutId, schedulePriority, duration);
+        await client.scheduleLayout(displayGroupId, layoutId, schedulePriority, duration);
     }
 
     /**
@@ -1114,14 +1120,14 @@ class XiboAdapter extends utils.Adapter {
      * reports success and changes nothing.
      *
      */
-    private async revertGroup(displayGroupId: number): Promise<void> {
+    private async revertGroup(client: XiboClient, displayGroupId: number): Promise<void> {
         const { layoutPlayMode, schedulePriority } = this.settings;
         if (layoutPlayMode === 'action') {
-            await this.client!.revertToSchedule(displayGroupId);
+            await client.revertToSchedule(displayGroupId);
             return;
         }
-        const removed = await this.client!.clearScheduledLayouts(displayGroupId, schedulePriority);
-        await this.client!.collectNow(displayGroupId);
+        const removed = await client.clearScheduledLayouts(displayGroupId, schedulePriority);
+        await client.collectNow(displayGroupId);
         this.log.debug(`revert: removed ${removed} scheduled layout(s) from display group ${displayGroupId}`);
     }
 
@@ -1132,6 +1138,9 @@ class XiboAdapter extends utils.Adapter {
         error?: string,
         result?: unknown,
     ): Promise<void> {
+        if (this.unloaded) {
+            return;
+        }
         await this.setState('commands.lastResult', {
             val: JSON.stringify({ ok, command, payload, error, result, ts: Date.now() }),
             ack: true,

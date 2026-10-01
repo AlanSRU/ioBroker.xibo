@@ -6,14 +6,16 @@
  * `/api/authorize/access_token`, `client_credentials` grant.
  */
 
+import { selectedCollections } from './xibo-collections';
+
 /**
  * How a "play this layout" request reaches a player.
  *
  * `action` posts the CMS's own `changeLayout` action. The CMS delivers it over
  * XMR and a player that implements that message applies it instantly — but
  * one that does not simply logs it and carries on, while the CMS still reports
- * success. Our gaxibo/Arexibo players are in the second category, so nothing
- * moves and nothing fails.
+ * success. Arexibo and gaxibo are in the second category, so nothing moves
+ * and nothing fails.
  *
  * `schedule` writes a priority schedule event instead and asks the group to
  * collect. Every player honours its schedule, so this works regardless of
@@ -195,9 +197,12 @@ export function parseCriteriaUpdates(payload: Record<string, unknown>): XiboCrit
         if (typeof raw !== 'string' && typeof raw !== 'number' && typeof raw !== 'boolean') {
             throw new Error(`"${where}value" must be a string or a number`);
         }
-        const ttl = src.ttl === undefined || src.ttl === null ? DEFAULT_CRITERIA_TTL : Number(src.ttl);
-        if (!Number.isFinite(ttl)) {
-            throw new Error(`"${where}ttl" must be a number of seconds`);
+        // Strict, not `Number()`: a blank form field is `Number("")` = 0, which
+        // the player treats as already expired, so the push lapsed at the next
+        // minute tick instead of holding for the documented default.
+        const ttl = src.ttl === undefined || src.ttl === null ? DEFAULT_CRITERIA_TTL : strictNumber(src.ttl);
+        if (!Number.isFinite(ttl) || ttl <= 0) {
+            throw new Error(`"${where}ttl" must be a positive number of seconds`);
         }
         return { metric, value: String(raw), ttl };
     };
@@ -478,6 +483,109 @@ export function evaluateHealth(inputs: HealthInputs): { connected: boolean; last
 }
 
 /**
+ * A number from a payload or setting, or `NaN` when it is not one.
+ *
+ * `Number()` alone accepts far too much: `Number(true)` is 1, and
+ * `Number(null)` and `Number("")` are both 0, so `{"displayGroupId": true}`
+ * targeted display group 1 and a blank form field became a real value. Only a
+ * number, or a non-blank string that reads as one, counts.
+ *
+ */
+export function strictNumber(value: unknown): number {
+    if (typeof value === 'number') {
+        return value;
+    }
+    if (typeof value === 'string' && value.trim() !== '') {
+        return Number(value);
+    }
+    return NaN;
+}
+
+/**
+ * A CMS id from a payload: a positive integer, or an error naming the field.
+ *
+ */
+export function requireId(value: unknown, field: string): number {
+    const id = strictNumber(value);
+    if (!Number.isInteger(id) || id <= 0) {
+        throw new Error(`"${field}" must be a positive integer id, got ${JSON.stringify(value) ?? 'nothing'}`);
+    }
+    return id;
+}
+
+/**
+ * Keeps a configured number inside sane bounds, falling back when unusable.
+ *
+ */
+export function clampSetting(value: unknown, min: number, max: number, fallback: number): number {
+    const n = strictNumber(value);
+    if (!Number.isFinite(n) || n <= 0) {
+        return fallback;
+    }
+    return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * The instance configuration, with every value made safe to use.
+ *
+ * Clamped at both ends in code, not just in the admin UI: an instance object
+ * can be written by a restored backup or a script, and a value at or above
+ * 2^31 makes Node fall back to a 1 ms timer — which would poll the CMS
+ * continuously, or abort every request before it could answer.
+ *
+ */
+export function parseConfig(c: Partial<Record<keyof XiboConfig, unknown>>): XiboConfig {
+    const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+    return {
+        url: text(c.url),
+        clientId: text(c.clientId),
+        clientSecret: text(c.clientSecret),
+        inventoryPollInterval: clampSetting(c.inventoryPollInterval, 30_000, 86_400_000, 300_000),
+        statusPollInterval: clampSetting(c.statusPollInterval, 5_000, 3_600_000, 30_000),
+        requestTimeout: clampSetting(c.requestTimeout, 2_000, 120_000, 30_000),
+        layoutFolder: text(c.layoutFolder),
+        // Capped like the admin field. An unbounded value overflows the date
+        // `cmsDateTime` builds, and the CMS is then sent "NaN-NaN-NaN".
+        defaultChangeDuration: clampSetting(c.defaultChangeDuration, 0, 86_400, 0),
+        // An unset or empty selection means the defaults, not nothing: an
+        // instance upgrading from 0.2.0 has no such setting, and mirroring
+        // nothing would empty the three states its scripts already read.
+        inventoryCollections: selectedCollections(c.inventoryCollections).map(collection => collection.key),
+        // Defaults to `schedule` because it is the mode that works on any
+        // player: a schedule is honoured universally, whereas the XMR
+        // action is silently ignored by players that do not implement it.
+        // `action` is the optimisation, not the safe choice.
+        layoutPlayMode: c.layoutPlayMode === 'action' ? 'action' : 'schedule',
+        // An integer, because it is also the marker for the adapter's own
+        // events: `10.5` is stored as something else, so the strict match in
+        // `clearScheduledLayouts` never found them again and every play added
+        // another event at that priority instead of replacing the last.
+        schedulePriority: Math.round(clampSetting(c.schedulePriority, 1, 1000, 10)),
+    };
+}
+
+/**
+ * The object id for a new display-group branch.
+ *
+ * Two names can fold to the same id, so a collision falls back to the CMS id —
+ * and that fallback can itself be taken ("Lobby 5" folds to `lobby_5`, which is
+ * also where group 5 named "Lobby!" falls back to). Taking it anyway would leave
+ * one branch describing one group while commanding another, so the search
+ * carries on until it finds an id nobody holds.
+ *
+ */
+export function chooseBranchId(base: string, displayGroupId: number, taken: ReadonlySet<string>): string {
+    if (!taken.has(base)) {
+        return base;
+    }
+    let candidate = `${base}_${displayGroupId}`;
+    for (let n = 2; taken.has(candidate); n++) {
+        candidate = `${base}_${displayGroupId}_${n}`;
+    }
+    return candidate;
+}
+
+/**
  * The requested duration in seconds, or `fallback` when none was given.
  *
  * Validated rather than coerced. `Number("30s")` is `NaN`, and both play
@@ -494,10 +602,8 @@ export function parseDurationSeconds(value: unknown, fallback: number): number {
     }
     // `Number("")` is 0, not NaN, and 0 here means "until reverted" — so a
     // blank would quietly become an indefinite play rather than being refused.
-    if (typeof value === 'string' && value.trim().length === 0) {
-        throw new Error(`"duration" must be a number of seconds, got ${JSON.stringify(value)}`);
-    }
-    const seconds = Number(value);
+    // `strictNumber` refuses it, and `true`, which `Number()` makes 1.
+    const seconds = strictNumber(value);
     if (!Number.isFinite(seconds) || seconds < 0) {
         throw new Error(`"duration" must be a number of seconds, got ${JSON.stringify(value)}`);
     }

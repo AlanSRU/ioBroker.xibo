@@ -26,7 +26,9 @@ export interface CollectionDefinition {
      * Whether this collection is mirrored unless the user says otherwise.
      *
      * Off for anything large enough to make a state unwieldy, and for
-     * anything holding personal data — see {@link PERSONAL_DATA_KEYS}.
+     * anything holding personal data: mirroring users, user groups or sessions
+     * copies names and email addresses out of the CMS's own access control and
+     * into states any script or VIS view can read.
      */
     defaultOn: boolean;
     /** Where the rows sit when the response is not a bare array. */
@@ -44,16 +46,6 @@ export interface CollectionDefinition {
     /** Why this collection is off by default, when it is. */
     note?: string;
 }
-
-/**
- * Collections that contain personal data about real people.
- *
- * Mirroring these into the object tree copies names and email addresses out of
- * the CMS's own access control and into a state any script or VIS view can
- * read, so they are off unless asked for. The API passthrough still reaches
- * them, which is the right place for an occasional administrative query.
- */
-export const PERSONAL_DATA_KEYS = ['users', 'userGroups', 'sessions'] as const;
 
 export const COLLECTIONS: CollectionDefinition[] = [
     // ---- the three the adapter has always mirrored, with their original ids

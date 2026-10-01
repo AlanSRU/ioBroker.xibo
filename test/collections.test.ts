@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import {
-    COLLECTIONS, DEFAULT_COLLECTION_KEYS, PERSONAL_DATA_KEYS, collectionRows, collectionStateIds,
+    COLLECTIONS, DEFAULT_COLLECTION_KEYS, collectionRows, collectionStateIds,
     selectedCollections,
 } from "../src/lib/xibo-collections";
 import { readFileSync } from "node:fs";
@@ -13,6 +13,9 @@ const jsonConfig = (): unknown =>
 const ioPackage = (): Record<string, unknown> => readJson("io-package.json");
 /** The English text admin shows for an i18n key in jsonConfig. */
 const english = (key: string): string => readJson("admin/i18n/en.json")[key] as string;
+
+/** Collections that hold personal data about real people. */
+const PERSONAL_DATA_KEYS = ["users", "userGroups", "sessions"];
 
 describe("inventory collections", () => {
     it("asks for campaigns in the only way that returns any", () => {
