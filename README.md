@@ -231,7 +231,7 @@ it.
 	Placeholder for the next version (at the beginning of the line):
 	### __WORK IN PROGRESS__
 -->
-### **WORK IN PROGRESS**
+### 0.4.1 (2026-10-01)
 
 - Published through CI with npm provenance.
 - The 0.4.0 release notes shown in admin are corrected in every language. The

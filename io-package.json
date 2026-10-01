@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "xibo",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "news": {
       "0.4.1": {
         "en": "Published through CI with npm provenance, and the 0.4.0 release notes are corrected in every language.",
