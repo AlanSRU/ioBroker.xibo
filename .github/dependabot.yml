@@ -1,41 +1,46 @@
-version: 2
+# Dependabot configuration
+# Cooldown delays updating normal npm dependencies by 7 days but allows security updates to be processed immediately.
+# Note: Cooldown is not supported for the github-actions ecosystem.
+# Reference: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+version: !!int '2'
 updates:
-  - package-ecosystem: npm
-    directory: /
-    # A cron schedule rather than `interval: monthly`, staggered against the
-    # github-actions ecosystem below so the two do not open PRs on the same day.
-    schedule: { interval: cron, cronjob: "17 3 9 * *", timezone: Europe/London }
-    open-pull-requests-limit: 15
-    cooldown: { default-days: 7 }
+
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'cron'
+      cronjob: '17 3 9 * *'
+      timezone: 'Europe/London'
+    open-pull-requests-limit: !!int '15'
+    cooldown:
+      default-days: !!int '7'
     ignore:
-      # @types/node tracks engines.node, so a major bump has to be deliberate.
-      - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
-      # These need config or source migrations, not a merge. A PR that cannot
-      # pass CI is worse than no PR: repochecker's E3031 reads the most recent
-      # workflow run on ANY branch, so a red Dependabot run fails the checker
-      # even with main green.
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
-      # A shared-config major changes which rules fire, which is a source
-      # migration rather than a merge.
-      - dependency-name: "@iobroker/eslint-config"
-        update-types: ["version-update:semver-major"]
-      # @iobroker/types majors follow js-controller and are a deliberate step.
-      - dependency-name: "@iobroker/types"
-        update-types: ["version-update:semver-major"]
-      # chai and mocha are no longer declared here — they come from
-      # @iobroker/testing, whose own major is a deliberate step too.
-      - dependency-name: "@iobroker/testing"
-        update-types: ["version-update:semver-major"]
-  - package-ecosystem: github-actions
-    directory: /
-    schedule: { interval: cron, cronjob: "41 6 16 * *", timezone: Europe/London }
-    open-pull-requests-limit: 15
-    cooldown: { default-days: 7 }
+      - dependency-name: '@types/node'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: 'typescript'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: '@iobroker/eslint-config'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: '@iobroker/types'
+        update-types:
+          - 'version-update:semver-major'
+      - dependency-name: '@iobroker/testing'
+        update-types:
+          - 'version-update:semver-major'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'cron'
+      cronjob: '41 6 16 * *'
+      timezone: 'Europe/London'
+    open-pull-requests-limit: !!int '15'
+    cooldown:
+      default-days: !!int '7'
     ignore:
-      # An action major is a migration — ioBroker's testing actions change
-      # their inputs between majors, and actions/* v4 -> v7 spans Node runtime
-      # changes. Bumping these blind opens a PR that cannot go green.
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: '*'
+        update-types:
+          - 'version-update:semver-major'
