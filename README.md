@@ -410,7 +410,7 @@ it.
 
 ## Requirements
 
-- Node.js 22 or newer, js-controller 6.0.11 or newer and admin 7.6.20 or newer.
+- Node.js 22 or newer, js-controller 6.0.11 or newer and admin 7.8.23 or newer.
 - A [Xibo CMS](https://xibosignage.com/) (developed against 4.5) reachable from
   ioBroker.
 - An **Application** in the CMS under *Administration -> Applications*, with the
