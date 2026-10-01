@@ -231,6 +231,10 @@ it.
 	Placeholder for the next version (at the beginning of the line):
 	### __WORK IN PROGRESS__
 -->
+
+### **WORK IN PROGRESS**
+- (ioBroker-Bot) Adapter requires admin >= 7.8.23 now.
+
 ### 0.4.1 (2026-10-01)
 
 - Published through CI with npm provenance.
