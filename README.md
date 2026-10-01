@@ -404,6 +404,8 @@ it.
 
 **Older changes have been moved to [CHANGELOG_OLD.md](CHANGELOG_OLD.md)**
 
+[Older changelogs can be found there](CHANGELOG_OLD.md)
+
 ## Requirements
 
 - Node.js 22 or newer, js-controller 6.0.11 or newer and admin 7.6.20 or newer.
