@@ -13,3 +13,6 @@ CLAUDE.md
 
 # ioBroker dev-server instance (npx @iobroker/dev-server)
 .dev-server/
+
+# Local forum post drafts (forum-post.mjs)
+.forum/

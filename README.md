@@ -231,6 +231,13 @@ it.
 	Placeholder for the next version (at the beginning of the line):
 	### __WORK IN PROGRESS__
 -->
+### **WORK IN PROGRESS**
+
+- Published through CI with npm provenance.
+- The 0.4.0 release notes shown in admin are corrected in every language. The
+  machine translation had changed state and setting ids such as
+  `commands.lastResult` and `schedulePriority`, and cut some sentences short.
+
 ### 0.4.0 (2026-10-01)
 
 **Behaviour changes — read these before upgrading.**
