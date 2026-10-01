@@ -40,7 +40,7 @@
     "layoutPlayModeAction": "XMR-ChangeLayout-Aktion (nur offizieller Xibo-Player)",
     "layoutPlayModeHelp": "Der Zeitplan funktioniert auf jedem Player und dauert ein paar Sekunden. Die XMR-Aktion erfolgt sofort, wird jedoch von Playern, die sie nicht implementieren, einschließlich Arexibo und Gaxibo, stillschweigend ignoriert.",
     "layoutPlayModeLabel": "Wie ein Layout den Player erreicht",
-    "layoutPlayModeSchedule": "Planen Sie ein Prioritätsereignis und holen Sie es dann ab (funktioniert überall)",
+    "layoutPlayModeSchedule": "Prioritätsereignis planen, dann Abruf durch den Player auslösen (funktioniert überall)",
     "playbackHeader": "Layout-Wiedergabe",
     "pollHeader": "Abfrageintervalle",
     "requestTimeoutHelp": "Wie lange muss auf das CMS gewartet werden, bevor eine Anfrage aufgegeben wird?",
