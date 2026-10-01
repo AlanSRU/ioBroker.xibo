@@ -972,7 +972,7 @@ class XiboAdapter extends utils.Adapter {
                 await this.refreshStatus();
                 if (!ok) {
                     await this.recordResult(command, payload, false, 'Inventory refresh failed — see info.lastError');
-                    await this.setState('commands.refresh', { val: false, ack: true });
+                    await this.resetCommandState('commands.refresh', false);
                     return;
                 }
                 break;
@@ -1034,7 +1034,7 @@ class XiboAdapter extends utils.Adapter {
                     params,
                 );
                 await this.recordResult(command, payload, true, undefined, result);
-                await this.setState('commands.api', { val: '', ack: true });
+                await this.resetCommandState('commands.api', '');
                 return;
             }
 
@@ -1049,7 +1049,7 @@ class XiboAdapter extends utils.Adapter {
 
         await this.recordResult(command, payload, true);
         // Cleared so an identical follow-up request still triggers a change.
-        await this.setState(`commands.${command}`, { val: command === 'refresh' ? false : '', ack: true });
+        await this.resetCommandState(`commands.${command}`, command === 'refresh' ? false : '');
     }
 
     private async handleGroupWrite(local: string, value: unknown): Promise<void> {
@@ -1074,14 +1074,14 @@ class XiboAdapter extends utils.Adapter {
                 layoutId,
                 this.settings.defaultChangeDuration,
             );
-            await this.setState(local, { val: layoutId, ack: true });
+            await this.resetCommandState(local, layoutId);
             await this.recordResult('playLayoutId', { displayGroupId: entry.displayGroupId, layoutId }, true);
             return;
         }
 
         if (suffix === 'revert') {
             await this.revertGroup(this.requireClient(), entry.displayGroupId);
-            await this.setState(local, { val: false, ack: true });
+            await this.resetCommandState(local, false);
             await this.recordResult('revert', { displayGroupId: entry.displayGroupId }, true);
             return;
         }
@@ -1129,6 +1129,21 @@ class XiboAdapter extends utils.Adapter {
         const removed = await client.clearScheduledLayouts(displayGroupId, schedulePriority);
         await client.collectNow(displayGroupId);
         this.log.debug(`revert: removed ${removed} scheduled layout(s) from display group ${displayGroupId}`);
+    }
+
+    /**
+     * Acknowledges a command state once its command has finished.
+     *
+     * Skipped once the instance is stopping: a command keeps its own client so
+     * it can finish, but the adapter that ran it is going away, and its writes
+     * should stop with it.
+     *
+     */
+    private async resetCommandState(id: string, val: ioBroker.StateValue): Promise<void> {
+        if (this.unloaded) {
+            return;
+        }
+        await this.setState(id, { val, ack: true });
     }
 
     private async recordResult(

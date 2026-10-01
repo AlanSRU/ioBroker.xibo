@@ -238,8 +238,9 @@ it.
 - **Command payloads are checked strictly.** Ids must be positive integers,
   given as a number or a numeric string. `true`, `null` and `""` used to be
   turned into 1 or 0, so `{"displayGroupId": true}` targeted display group 1;
-  they are now refused and `commands.lastResult` records `ok:false`. The same
-  applies to `duration`, and to a criteria `ttl`, which must now be a positive
+  they are now refused and `commands.lastResult` records `ok:false`. A
+  `duration` of `true` or `""` is refused too, while a missing or `null` one
+  still means the configured default. A criteria `ttl` must be a positive
   number — a blank ttl used to expire the push at the next minute tick instead
   of using the 12-hour default.
 - **`schedulePriority` is rounded to a whole number.** A fractional priority
