@@ -80,95 +80,95 @@
             "help": "inventoryCollectionsHelp",
             "options": [
                 {
-                    "label": "Display groups",
+                    "label": "collection_displayGroups",
                     "value": "displayGroups"
                 },
                 {
-                    "label": "Displays",
+                    "label": "collection_displays",
                     "value": "displays"
                 },
                 {
-                    "label": "Layouts",
+                    "label": "collection_layouts",
                     "value": "layouts"
                 },
                 {
-                    "label": "Campaigns",
+                    "label": "collection_campaigns",
                     "value": "campaigns"
                 },
                 {
-                    "label": "Playlists",
+                    "label": "collection_playlists",
                     "value": "playlists"
                 },
                 {
-                    "label": "Datasets",
+                    "label": "collection_datasets",
                     "value": "datasets"
                 },
                 {
-                    "label": "Layout templates",
+                    "label": "collection_templates",
                     "value": "templates"
                 },
                 {
-                    "label": "Tags",
+                    "label": "collection_tags",
                     "value": "tags"
                 },
                 {
-                    "label": "Resolutions",
+                    "label": "collection_resolutions",
                     "value": "resolutions"
                 },
                 {
-                    "label": "Display profiles",
+                    "label": "collection_displayProfiles",
                     "value": "displayProfiles"
                 },
                 {
-                    "label": "Day parts",
+                    "label": "collection_dayParts",
                     "value": "dayParts"
                 },
                 {
-                    "label": "Folders",
+                    "label": "collection_folders",
                     "value": "folders"
                 },
                 {
-                    "label": "CMS commands",
+                    "label": "collection_cmsCommands",
                     "value": "cmsCommands"
                 },
                 {
-                    "label": "Sync groups",
+                    "label": "collection_syncGroups",
                     "value": "syncGroups"
                 },
                 {
-                    "label": "Menu boards",
+                    "label": "collection_menuBoards",
                     "value": "menuBoards"
                 },
                 {
-                    "label": "Notifications",
+                    "label": "collection_notifications",
                     "value": "notifications"
                 },
                 {
-                    "label": "Player software versions",
+                    "label": "collection_playerVersions",
                     "value": "playerVersions"
                 },
                 {
-                    "label": "Media library (off by default)",
+                    "label": "collection_library",
                     "value": "library"
                 },
                 {
-                    "label": "Widget modules (off by default)",
+                    "label": "collection_modules",
                     "value": "modules"
                 },
                 {
-                    "label": "Display venues (off by default)",
+                    "label": "collection_venues",
                     "value": "venues"
                 },
                 {
-                    "label": "CMS users (off by default)",
+                    "label": "collection_users",
                     "value": "users"
                 },
                 {
-                    "label": "CMS user groups (off by default)",
+                    "label": "collection_userGroups",
                     "value": "userGroups"
                 },
                 {
-                    "label": "Active CMS sessions (off by default)",
+                    "label": "collection_sessions",
                     "value": "sessions"
                 }
             ],

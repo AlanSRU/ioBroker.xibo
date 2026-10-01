@@ -11,6 +11,8 @@ const readJson = (name: string): Record<string, unknown> =>
 const jsonConfig = (): unknown =>
     (readJson("admin/jsonConfig.json").items as Record<string, unknown>).inventoryCollections;
 const ioPackage = (): Record<string, unknown> => readJson("io-package.json");
+/** The English text admin shows for an i18n key in jsonConfig. */
+const english = (key: string): string => readJson("admin/i18n/en.json")[key] as string;
 
 describe("inventory collections", () => {
     it("asks for campaigns in the only way that returns any", () => {
@@ -206,14 +208,14 @@ describe("the admin config offers exactly the catalogue", () => {
     it("labels each one with its catalogue name", () => {
         for (const collection of COLLECTIONS) {
             const option = options.find((o) => o.value === collection.key)!;
-            expect(option.label, `${collection.key} is mislabelled`).to.contain(collection.name);
+            expect(english(option.label), `${collection.key} is mislabelled`).to.contain(collection.name);
         }
     });
 
     it("marks the ones that are off by default, and only those", () => {
         for (const collection of COLLECTIONS) {
             const option = options.find((o) => o.value === collection.key)!;
-            expect(option.label.includes("(off by default)"), `${collection.key}`).to.equal(!collection.defaultOn);
+            expect(english(option.label).includes("(off by default)"), `${collection.key}`).to.equal(!collection.defaultOn);
         }
     });
 
